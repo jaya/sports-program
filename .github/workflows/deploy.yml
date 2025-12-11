@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - develop
-      - test/ci-cd  # Branch temporária para testes de deploy
+    
   workflow_dispatch:
 
 env:
