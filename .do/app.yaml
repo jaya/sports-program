@@ -1,27 +1,39 @@
 # Digital Ocean App Platform Specification
-# Altere SEU-USUARIO para seu usuário do GitHub
+# Deploy via GitHub Repository
 name: sports-program
-region: nyc
+region: sfo3
+
 services:
   - name: api
-    image:
-      registry_type: GHCR
-      registry: ghcr.io
-      repository: jaya/sports-program
-      tag: latest
+    # Fonte: Repositório GitHub
+    github:
+      repo: jaya/sports-program
+      branch: main
+      deploy_on_push: true
+    
+    # Usar Dockerfile para build
+    dockerfile_path: Dockerfile
+    
+    # Configurações do serviço
     instance_count: 1
     instance_size_slug: apps-s-1vcpu-0.5gb
     http_port: 8000
+    
     routes:
       - path: /
+    
     health_check:
       http_path: /health
-      initial_delay_seconds: 10
+      initial_delay_seconds: 15
       period_seconds: 10
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+    
+    # Variáveis de ambiente
     envs:
       - key: DEBUG
         value: "false"
       - key: DATABASE_URL
         scope: RUN_TIME
         type: SECRET
-
