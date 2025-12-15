@@ -16,7 +16,7 @@ FindByUserAndProgramServiceDep = Annotated[FindByUserAndProgram, Depends()]
 @router.get("/activities", response_model=List[ActivityResponse])
 async def get_activities_by_user(
     service: FindByUserServiceDep,
-    x_slack_user_id: str = Header(...),
+    x_slack_user_id: str = Header(..., title="ID Slack User"),
 ):
     return await service.execute(slack_id=x_slack_user_id)
 
@@ -25,7 +25,7 @@ async def get_activities_by_user(
 async def get_activities_by_user_and_program(
     service: FindByUserAndProgramServiceDep,
     program_id: int = Path(..., title="ID Program", ge=1),
-    x_slack_user_id: str = Header(...),
+    x_slack_user_id: str = Header(..., title="ID Slack User"),
 ):
     return await service.execute(program_id, x_slack_user_id)
 
@@ -35,6 +35,6 @@ async def create_activity(
     service: CreateServiceDep,
     activity_create: ActivityCreate,
     program_id: int = Path(..., title="ID Program", ge=1),
-    x_slack_user_id: str = Header(...),
+    x_slack_user_id: str = Header(..., title="ID Slack User"),
 ):
     return await service.execute(activity_create, program_id, x_slack_user_id)

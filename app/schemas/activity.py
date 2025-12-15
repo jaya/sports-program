@@ -4,8 +4,8 @@ from pydantic import BaseModel, ConfigDict
 
 class ActivityBase(BaseModel):
     description: str
-    evidence_url: str
-    performed_at: datetime
+    evidence_url: str | None = None
+    performed_at: datetime | None = None
 
 
 class ActivityCreate(ActivityBase):

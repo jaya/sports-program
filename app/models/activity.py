@@ -10,9 +10,10 @@ class Activity(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False)
-    program_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    program_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("programs.id"), nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=False)
-    evidence_url: Mapped[str] = mapped_column(String, nullable=False)
+    evidence_url: Mapped[str] = mapped_column(String, nullable=True)
     performed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now())

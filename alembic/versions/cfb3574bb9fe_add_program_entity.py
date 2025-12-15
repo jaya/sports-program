@@ -1,8 +1,8 @@
 """Add Program Entity
 
-Revision ID: 287da7f107d5
-Revises: 947b3e996992
-Create Date: 2025-12-15 12:13:19.824522
+Revision ID: cfb3574bb9fe
+Revises: 5bc08cb9a36c
+Create Date: 2025-12-15 15:38:15.870555
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '287da7f107d5'
-down_revision: Union[str, Sequence[str], None] = '947b3e996992'
+revision: str = 'cfb3574bb9fe'
+down_revision: Union[str, Sequence[str], None] = '5bc08cb9a36c'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
