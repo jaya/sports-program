@@ -14,7 +14,12 @@ from app.models.base import *  # noqa: F401, F403
 config = context.config
 
 # Set the sqlalchemy.url from settings
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("+aiosqlite", ""))
+db_url = settings.DATABASE_URL
+db_url = db_url.replace("+aiosqlite", "")  # SQLite async -> sync
+db_url = db_url.replace("+asyncpg", "+psycopg2")  # PostgreSQL async -> sync
+db_url = db_url.replace("?ssl=require", "?sslmode=require")  # asyncpg usa ssl, psycopg2 usa sslmode
+config.set_main_option("sqlalchemy.url", db_url)
+
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
