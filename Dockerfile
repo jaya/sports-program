@@ -3,32 +3,39 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# Instalar dependências do sistema e Poetry
+# Install system dependencies and Poetry
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     curl \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir poetry
 
-# Configurar Poetry
+# Configure Poetry
 ENV POETRY_VIRTUALENVS_CREATE=false \
     POETRY_NO_INTERACTION=1
 
-# Copiar arquivos de dependências
+# Copy dependencies files
 COPY pyproject.toml poetry.lock* ./
 
-# Instalar dependências
+# Install dependencies
 RUN poetry install --only=main --no-root
 
-# Copiar código da aplicação
+# Copy application code
 COPY app/ ./app/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 
-# Criar usuário não-root
-RUN useradd --create-home --shell /bin/bash appuser
+# Create non-root user and data directory
+RUN useradd --create-home --shell /bin/bash appuser && \
+    mkdir -p /app/data && \
+    chown -R appuser:appuser /app/data
+
 USER appuser
+
+# Define where SQLite will save
+ENV DATABASE_URL="sqlite+aiosqlite:///./data/sports_program.db"
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run migrations and start the app
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
