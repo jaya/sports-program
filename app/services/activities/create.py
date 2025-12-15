@@ -2,9 +2,9 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models.activity import ActivityCreate
-from app.schemas.activity import Activity
-from app.models.user import UserCreate
+from app.schemas.activity import ActivityCreate
+from app.models.activity import Activity
+from app.schemas.user import UserCreate
 from app.services.users.find_by_slack_id import FindBySlackId
 from app.services.users.create import Create
 from app.services.activities.check_activity_same_day import CheckActivitySameDay
@@ -12,7 +12,7 @@ from app.services.activities.check_activity_same_day import CheckActivitySameDay
 
 class Create:
     def __init__(
-        self, 
+        self,
         db: AsyncSession = Depends(get_db),
         user_find_by_slack_id: FindBySlackId = Depends(),
         user_create: Create = Depends(),
@@ -22,7 +22,6 @@ class Create:
         self.user_find_by_slack_id = user_find_by_slack_id
         self.user_create = user_create
         self.check_activity_same_day = check_activity_same_day
-
 
     async def execute(
         self,
@@ -39,7 +38,7 @@ class Create:
             user_id = new_user.id
 
         await self.check_activity_same_day.execute(
-            program_id, 
+            program_id,
             user_id,
             activity_create.performed_at
         )
@@ -58,9 +57,8 @@ class Create:
         except Exception as e:
             await self.db.rollback()
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"An error occurred: {str(e)}"
             )
-        
+
         return db_activity
-    

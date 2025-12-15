@@ -2,15 +2,15 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.models.user import User
+from app.models.program import Program
 from app.core.database import get_db
 
 
-class FindBySlackId:
+class FindAll:
     def __init__(self, db: AsyncSession = Depends(get_db)):
         self.db = db
 
-    async def execute(self, slack_id: str):
-        stmt = select(User).where(User.slack_id == slack_id)
+    async def execute(self):
+        stmt = select(Program)
         result = await self.db.execute(stmt)
-        return result.scalars().first()
+        return result.scalars().all()

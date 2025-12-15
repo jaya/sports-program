@@ -4,16 +4,15 @@ from sqlalchemy import select, func
 from datetime import datetime
 
 from app.core.database import get_db
-from app.schemas.activity import Activity
+from app.models.activity import Activity
 
 
 class CheckActivitySameDay:
     def __init__(
-        self, 
+        self,
         db: AsyncSession = Depends(get_db),
     ):
         self.db = db
-
 
     async def execute(
         self,
@@ -34,4 +33,3 @@ class CheckActivitySameDay:
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"An activity is already registered for the user on this date ({activity_date})."
             )
-    
