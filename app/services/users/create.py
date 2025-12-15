@@ -1,24 +1,24 @@
 from fastapi import HTTPException, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
 from app.models.user import UserCreate
 from app.schemas.user import User
 from app.core.database import get_db
+from app.services.users.find_by_slack_id import FindBySlackId
 
 
-class UserService:
-    def __init__(self, db: AsyncSession = Depends(get_db)):
+class Create:
+    def __init__(
+        self, 
+        db: AsyncSession = Depends(get_db),
+        user_find_by_slack_id: FindBySlackId = Depends()
+    ):
         self.db = db
-
-    async def find_all_users(self):
-        result = await self.db.execute(select(User))
-        users = result.scalars().all()
-        return users
+        self.user_find_by_slack_id = user_find_by_slack_id
 
 
-    async def insert_new_user(self, user: UserCreate):
-        user_found = await self.find_user_by_slack_id(user.slack_id)
+    async def execute(self, user: UserCreate):
+        user_found = await self.user_find_by_slack_id.execute(user.slack_id)
         if user_found:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
@@ -38,8 +38,3 @@ class UserService:
             )
         
         return db_user
-    
-    async def find_user_by_slack_id(self, slack_id: str):
-        stmt = select(User).where(User.slack_id == slack_id)
-        result = await self.db.execute(stmt)
-        return result.scalars().first()
