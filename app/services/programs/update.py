@@ -25,20 +25,20 @@ class Update:
         if not db_program:
             raise EntityNotFoundError("Program", id)
 
-        if program_update.name:
+        if program_update.name and program_update.name != db_program.name:
             existing_program = await self.find_by_name.execute(program_update.name)
             if existing_program and existing_program.id != id:
                 raise DuplicateEntityError(
                     "Program", "name", program_update.name)
 
-        start_date = program_update.start_date if program_update.start_date is not None else db_program.start_date
-        end_date = program_update.end_date if program_update.end_date is not None else db_program.end_date
+        update_data = program_update.model_dump(exclude_unset=True)
+        
+        start_date = update_data.get("start_date", db_program.start_date)
+        end_date = update_data.get("end_date", db_program.end_date)
 
         if start_date and end_date and start_date > end_date:
             raise BusinessRuleViolationError(
                 "Start Date greater then End Date")
-
-        update_data = program_update.model_dump(exclude_unset=True)
 
         for key, value in update_data.items():
             setattr(db_program, key, value)

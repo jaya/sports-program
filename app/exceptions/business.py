@@ -1,15 +1,17 @@
+from typing import Any
+
 class BusinessException(Exception):
     pass
 
 
 class EntityNotFoundError(BusinessException):
-    def __init__(self, entity: str, identifier: any):
-        self.message = f"{entity} with identifier {identifier} not foud."
+    def __init__(self, entity: str, identifier: Any):
+        self.message = f"{entity} with identifier {identifier} not found."
         super().__init__(self.message)
 
 
 class DuplicateEntityError(BusinessException):
-    def __init__(self, entity: str, field: str, value: any):
+    def __init__(self, entity: str, field: str, value: Any):
         self.message = f"{entity} with {field} '{value}' already exists."
         super().__init__(self.message)
 
