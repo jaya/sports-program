@@ -17,7 +17,7 @@ class Create:
         self.program_find_by_name = program_find_by_name
 
     async def execute(self, program: ProgramCreate):
-        program_found = await self.program_find_by_name.execute(program.name)
+        program_found = await self.program_find_by_name.execute(program.name, program.slack_channel)
         if program_found:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

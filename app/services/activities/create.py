@@ -76,14 +76,29 @@ class Create:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="Program with this program_id not found")
 
-        if performed_at < program_found.start_date:
+        # Garante que performed_at e program_found.start_date sejam comparáveis
+        start_date = program_found.start_date
+        if performed_at.tzinfo is None and start_date.tzinfo is not None:
+            performed_at = performed_at.replace(tzinfo=start_date.tzinfo)
+        elif performed_at.tzinfo is not None and start_date.tzinfo is None:
+            start_date = start_date.replace(tzinfo=performed_at.tzinfo)
+
+        if performed_at < start_date:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Activity date is outside the program date range"
             )
 
-        if program_found.end_date and performed_at > program_found.end_date:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Activity date is outside the program date range"
-            )
+        if program_found.end_date:
+            end_date = program_found.end_date
+            # Garante a mesma consistência para a data de fim
+            if performed_at.tzinfo is None and end_date.tzinfo is not None:
+                performed_at = performed_at.replace(tzinfo=end_date.tzinfo)
+            elif performed_at.tzinfo is not None and end_date.tzinfo is None:
+                end_date = end_date.replace(tzinfo=performed_at.tzinfo)
+
+            if performed_at > end_date:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Activity date is outside the program date range"
+                )
