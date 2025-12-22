@@ -1,15 +1,15 @@
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager
-from sqlalchemy import select, extract
+from sqlalchemy import select
 
 from app.exceptions.business import EntityNotFoundError
-from app.exceptions.business import BusinessRuleViolationError
 from app.core.database import get_db
 from app.models.activity import Activity
 from app.models.program import Program
 from app.services.users.find_by_slack_id import FindBySlackId
 from app.services.programs.find_by_slack_channel import FindBySlackChannel
+from app.services.utils.reference_date import ReferenceDate
 
 
 class FindByUserAndProgram:
@@ -37,13 +37,7 @@ class FindByUserAndProgram:
         if not program_found:
             raise EntityNotFoundError("Program", program_slack_channel)
 
-        try:
-            year_str, month_str = reference_date.split("-")
-            year = int(year_str)
-            month = int(month_str)
-        except ValueError:
-            raise BusinessRuleViolationError(
-                "The date format must be YYYY-MM.")
+        ref = ReferenceDate.from_str(reference_date)
 
         stmt = (
             select(Activity)
@@ -52,8 +46,7 @@ class FindByUserAndProgram:
             .where(
                 Activity.user_id == user_found.id,
                 Program.slack_channel == program_slack_channel,
-                extract('year', Activity.performed_at) == year,
-                extract('month', Activity.performed_at) == month
+                *Activity.filter_date_tz(ref.year, ref.month)
             )
             .options(
                 contains_eager(Activity.user),

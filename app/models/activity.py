@@ -1,6 +1,7 @@
-from sqlalchemy import String, Integer, DateTime, func, ForeignKey
+from sqlalchemy import String, Integer, DateTime, func, ForeignKey, extract
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
+
 from app.core.database import Base
 
 
@@ -20,3 +21,12 @@ class Activity(Base):
 
     user = relationship("User", back_populates="activities")
     program = relationship("Program", back_populates="activities")
+
+    @classmethod
+    def filter_date_tz(cls, year: int, month: int, tz: str = "America/Sao_Paulo"):
+        local_date = func.timezone(tz, cls.performed_at)
+
+        return (
+            extract('year', local_date) == year,
+            extract('month', local_date) == month
+        )
