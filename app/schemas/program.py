@@ -9,6 +9,11 @@ class ProgramBase(BaseModel):
     end_date: datetime | None = None
 
 
+class ProgramSimple(BaseModel):
+    name: str
+    slack_channel: str
+
+
 class ProgramCreate(ProgramBase):
     pass
 

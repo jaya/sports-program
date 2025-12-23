@@ -32,7 +32,7 @@ class Update:
                     "Program", "name", program_update.name)
 
         update_data = program_update.model_dump(exclude_unset=True)
-        
+
         start_date = update_data.get("start_date", db_program.start_date)
         end_date = update_data.get("end_date", db_program.end_date)
 
@@ -47,8 +47,8 @@ class Update:
         try:
             await self.db.commit()
             await self.db.refresh(db_program)
-        except Exception:
+        except Exception as e:
             await self.db.rollback()
-            raise DatabaseError()
+            raise DatabaseError() from e
 
         return db_program

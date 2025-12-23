@@ -4,13 +4,14 @@ from datetime import datetime
 
 from app.exceptions.business import BusinessRuleViolationError, EntityNotFoundError, DatabaseError
 from app.core.database import get_db
-from app.schemas.activity import ActivityCreate
 from app.models.activity import Activity
+from app.schemas.activity import ActivityCreate, ActivitySummaryResponse
 from app.schemas.user import UserCreate
 from app.services.users.find_by_slack_id import FindBySlackId
 from app.services.users.create import Create
 from app.services.activities.check_activity_same_day import CheckActivitySameDay
-from app.services.programs.find_by_id import FindById
+from app.services.programs.find_by_slack_channel import FindBySlackChannel
+from app.services.activities.count_monthly import CountActivitiesService
 
 
 class Create:
@@ -20,32 +21,38 @@ class Create:
         user_find_by_slack_id: FindBySlackId = Depends(),
         user_create: Create = Depends(),
         check_activity_same_day: CheckActivitySameDay = Depends(),
-        program_find_by_id: FindById = Depends()
+        program_find_by_slack_channel: FindBySlackChannel = Depends(),
+        count_service: CountActivitiesService = Depends()
     ):
         self.db = db
         self.user_find_by_slack_id = user_find_by_slack_id
         self.user_create = user_create
         self.check_activity_same_day = check_activity_same_day
-        self.program_find_by_id = program_find_by_id
+        self.program_find_by_slack_channel = program_find_by_slack_channel
+        self.count_service = count_service
 
     async def execute(
         self,
         activity_create: ActivityCreate,
-        program_id: int,
+        program_slack_channel: str,
         slack_id: str,
     ):
+        # TODO: Fix more than one program with same slack channel
         user_id = await self.validate_user(slack_id)
-        performed_at = activity_create.performed_at or datetime.now()
-        await self.validate_program(program_id, performed_at)
+        program_found = await self.validate_program(program_slack_channel)
+        performed_at = self.validate_performed_at(
+            program_found,
+            activity_create.performed_at
+        )
         await self.check_activity_same_day.execute(
-            program_id,
+            program_found.id,
             user_id,
             performed_at
         )
 
         db_activity = Activity(
             user_id=user_id,
-            program_id=program_id,
+            program_id=program_found.id,
             description=activity_create.description,
             evidence_url=activity_create.evidence_url,
             performed_at=performed_at
@@ -53,12 +60,19 @@ class Create:
         self.db.add(db_activity)
         try:
             await self.db.commit()
-            await self.db.refresh(db_activity)
-        except Exception:
+        except Exception as e:
             await self.db.rollback()
-            raise DatabaseError()
+            raise DatabaseError() from e
 
-        return db_activity
+        total_month = await self.count_service.execute(
+            user_id=user_id,
+            performed_at=db_activity.performed_at
+        )
+
+        return ActivitySummaryResponse(
+            id=db_activity.id,
+            count_month=total_month
+        )
 
     async def validate_user(self, slack_id):
         user_found = await self.user_find_by_slack_id.execute(slack_id)
@@ -68,10 +82,25 @@ class Create:
             new_user = await self.user_create.execute(UserCreate(slack_id=slack_id, display_name=slack_id))
             return new_user.id
 
-    async def validate_program(self, program_id, performed_at):
-        program_found = await self.program_find_by_id.execute(program_id)
+    async def validate_program(self, program_slack_channel):
+        program_found = await self.program_find_by_slack_channel.execute(program_slack_channel)
         if not program_found:
-            raise EntityNotFoundError("Program", program_id)
+            raise EntityNotFoundError("Program", program_slack_channel)
+
+        if len(program_found) > 1:
+            raise BusinessRuleViolationError(
+                f"There are {len(program_found)} programs linked to the channel '{program_slack_channel}'. "
+                "It is not possible to determine in which one to register the activity automatically."
+            )
+
+        return program_found[0]
+
+    def validate_performed_at(self, program_found, performed_at):
+        if not performed_at:
+            performed_at = datetime.now()
+        if performed_at > datetime.now():
+            raise BusinessRuleViolationError(
+                "Activity date cannot be in the future")
 
         if performed_at < program_found.start_date:
             raise BusinessRuleViolationError(
@@ -80,3 +109,5 @@ class Create:
         if program_found.end_date and performed_at > program_found.end_date:
             raise BusinessRuleViolationError(
                 "Activity date is outside the program date range")
+
+        return performed_at

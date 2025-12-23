@@ -27,8 +27,8 @@ class Create:
         try:
             await self.db.commit()
             await self.db.refresh(db_user)
-        except Exception:
+        except Exception as e:
             await self.db.rollback()
-            raise DatabaseError()
+            raise DatabaseError() from e
 
         return db_user
