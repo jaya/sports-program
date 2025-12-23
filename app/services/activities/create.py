@@ -34,7 +34,7 @@ class Create:
     async def execute(
         self,
         activity_create: ActivityCreate,
-        program_slack_channel: int,
+        program_slack_channel: str,
         slack_id: str,
     ):
         # TODO: Fix more than one program with same slack channel

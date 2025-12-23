@@ -27,6 +27,23 @@ class ActivityCreate(ActivityBase):
         return value
 
 
+class ActivityUpdate(ActivityBase):
+    description: str | None = None
+    evidence_url: str | None = None
+    performed_at: datetime | None = None
+
+    @field_validator("performed_at")
+    @classmethod
+    def validate_performed_at(cls, value: datetime):
+        if not is_within_allowed_window(value):
+            raise BusinessRuleViolationError(
+                "The date of the activity must be in the current or previous month."
+            )
+        return value
+
+    model_config = ConfigDict(extra='forbid')
+
+
 class ActivitySummaryResponse(BaseModel):
     id: int
     count_month: int
