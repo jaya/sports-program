@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Annotated
 
+from app.exceptions.business import EntityNotFoundError
 from app.schemas.program import ProgramCreate, ProgramResponse, ProgramUpdate
 from app.services.programs.find_all import FindAll
 from app.services.programs.create import Create
@@ -24,7 +25,7 @@ async def get_programs(service: FindAllServiceDep):
 async def get_program_by_name(name: str, slack_channel: str, service: FindByNameServiceDep):
     program = await service.execute(name, slack_channel)
     if not program:
-        raise HTTPException(status_code=404, detail="Program not found")
+        raise EntityNotFoundError("Program", name)
     return program
 
 
