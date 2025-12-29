@@ -1,7 +1,9 @@
 from sqlalchemy import String, Integer, DateTime, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
+
 from app.core.database import Base
+from app.models.activity import Activity
 
 
 class Program(Base):
@@ -16,3 +18,6 @@ class Program(Base):
         DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now())
+
+    activities: Mapped[list["Activity"]] = relationship(
+        "Activity", back_populates="program")

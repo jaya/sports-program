@@ -1,8 +1,10 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from datetime import datetime
+from typing import Optional
 
+from app.exceptions.business import BusinessRuleViolationError
 from app.core.database import get_db
 from app.models.activity import Activity
 
@@ -19,6 +21,7 @@ class CheckActivitySameDay:
         program_id: int,
         user_id: int,
         performed_at: datetime,
+        exclude_id: Optional[int] = None
     ):
         activity_date = performed_at.date()
         stmt = select(Activity).where(
@@ -26,10 +29,10 @@ class CheckActivitySameDay:
             Activity.program_id == program_id,
             func.date(Activity.performed_at) == activity_date
         )
+        if exclude_id is not None:
+            stmt = stmt.where(Activity.id != exclude_id)
         result = await self.db.execute(stmt)
         existing_activity = result.scalars().first()
         if existing_activity:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"An activity is already registered for the user on this date ({activity_date})."
-            )
+            raise BusinessRuleViolationError(
+                f"An activity is already registered for the user on this date ({activity_date}).")

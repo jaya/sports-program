@@ -9,8 +9,22 @@ class ProgramBase(BaseModel):
     end_date: datetime | None = None
 
 
+class ProgramSimple(BaseModel):
+    name: str
+    slack_channel: str
+
+
 class ProgramCreate(ProgramBase):
     pass
+
+
+class ProgramUpdate(ProgramBase):
+    name: str | None = None
+    slack_channel: str | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
+
+    model_config = ConfigDict(extra='forbid')
 
 
 class ProgramResponse(ProgramBase):
