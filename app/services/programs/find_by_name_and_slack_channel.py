@@ -7,7 +7,7 @@ from app.models.program import Program
 from app.core.database import get_db
 
 
-class FindByName:
+class FindByNameAndSlackChannel:
     def __init__(
             self,
             db: AsyncSession = Depends(get_db)

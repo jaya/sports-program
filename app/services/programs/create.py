@@ -5,20 +5,20 @@ from app.exceptions.business import DuplicateEntityError, BusinessRuleViolationE
 from app.schemas.program import ProgramCreate
 from app.models.program import Program
 from app.core.database import get_db
-from app.services.programs.find_by_name import FindByName
+from app.services.programs.find_by_name_and_slack_channel import FindByNameAndSlackChannel
 
 
 class Create:
     def __init__(
         self,
         db: AsyncSession = Depends(get_db),
-        program_find_by_name: FindByName = Depends()
+            program_find_by_name_slack_channel: FindByNameAndSlackChannel = Depends()
     ):
         self.db = db
-        self.program_find_by_name = program_find_by_name
+        self.program_find_by_name_slack_channel = program_find_by_name_slack_channel
 
     async def execute(self, program: ProgramCreate):
-        program_found = await self.program_find_by_name.execute(program.name)
+        program_found = await self.program_find_by_name_slack_channel.execute(program.name, program.slack_channel)
         if program_found:
             raise DuplicateEntityError("Program", "name", program.name)
 
