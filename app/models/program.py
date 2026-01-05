@@ -4,6 +4,7 @@ from datetime import datetime
 
 from app.core.database import Base
 from app.models.activity import Activity
+from app.models.achievement import Achievement
 
 
 class Program(Base):
@@ -21,3 +22,5 @@ class Program(Base):
 
     activities: Mapped[list["Activity"]] = relationship(
         "Activity", back_populates="program")
+    achievements: Mapped[list["Achievement"]] = relationship(
+        "Achievements", back_populates="program")
