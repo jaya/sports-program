@@ -7,6 +7,7 @@ authors = [
 ]
 readme = "README.md"
 requires-python = "^3.13"
+
 dependencies = [
     "fastapi (>=0.123.5,<0.124.0)",
     "uvicorn[standard] (>=0.38.0,<0.39.0)",
@@ -21,6 +22,11 @@ dependencies = [
 
 [tool.poetry]
 package-mode = false
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.0"
+pylint = "^3.3.6"
+coverage = "^7.8.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
