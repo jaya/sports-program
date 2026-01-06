@@ -23,7 +23,7 @@ Developers will learn by building a real system that integrates with Slack, uses
 
 ### 1. Clone the repository
 ```
-git clone https://github.com/jaya-academy/sports-program.git
+git clone https://github.com/jaya/sports-program.git
 cd sports-program
 ```
 
