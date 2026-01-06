@@ -2,15 +2,18 @@ from fastapi import APIRouter, Depends, status
 from typing import List, Annotated
 
 from app.schemas.program import ProgramCreate, ProgramResponse, ProgramUpdate
+from app.schemas.achievement import AchievementBatchResponse
 from app.services.programs.find_all import FindAll
 from app.services.programs.create import Create
 from app.services.programs.update import Update
+from app.services.programs.close_cycle import CloseCycle
 
 router = APIRouter(tags=["Program"])
 
 FindAllServiceDep = Annotated[FindAll, Depends()]
 CreateServiceDep = Annotated[Create, Depends()]
 UpdateServiceDep = Annotated[Update, Depends()]
+CloseCycleServiceDep = Annotated[CloseCycle, Depends()]
 
 
 @router.get("/programs", response_model=List[ProgramResponse])
@@ -26,3 +29,16 @@ async def create_program(program: ProgramCreate, service: CreateServiceDep):
 @router.patch("/programs/{program_id}", response_model=ProgramResponse, status_code=status.HTTP_200_OK)
 async def update_program(program_id: int, program: ProgramUpdate, service: UpdateServiceDep):
     return await service.execute(program_id, program)
+
+
+@router.post(
+    "/programs/{program_name}/close-cycle/{cycle_reference}",
+    response_model=AchievementBatchResponse | None,
+    status_code=status.HTTP_200_OK
+)
+async def close_cycle(
+    program_name: str,
+    cycle_reference: str,
+    service: CloseCycleServiceDep
+):
+    return await service.execute(program_name, cycle_reference)
