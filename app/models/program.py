@@ -23,4 +23,4 @@ class Program(Base):
     activities: Mapped[list["Activity"]] = relationship(
         "Activity", back_populates="program")
     achievements: Mapped[list["Achievement"]] = relationship(
-        "Achievements", back_populates="program")
+        "Achievement", back_populates="program")
