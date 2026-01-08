@@ -16,6 +16,9 @@ class DateValidation(BaseModel):
         if value is None:
             return value
 
+        if value.tzinfo is not None:
+            value = value.replace(tzinfo=None)
+
         if not is_within_allowed_window(value):
             raise BusinessRuleViolationError(
                 "The date of the activity must be in the current or previous month."
