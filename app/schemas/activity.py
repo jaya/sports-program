@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.exceptions.business import BusinessRuleViolationError
 from app.schemas.program import ProgramSimple
-from app.schemas.user import UserBase
+from app.schemas.user_schema import UserBase
 from app.utils.date_validator import is_within_allowed_window
 
 
@@ -37,7 +38,7 @@ class ActivityUpdate(ActivityBase, DateValidation):
     evidence_url: str | None = None
     performed_at: datetime | None = None
 
-    model_config = ConfigDict(extra='forbid')
+    model_config = ConfigDict(extra="forbid")
 
 
 class ActivitySummaryResponse(BaseModel):
