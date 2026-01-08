@@ -98,7 +98,8 @@ class Create:
         if not performed_at or performed_at is None:
             performed_at = datetime.now()
         if performed_at > datetime.now():
-            raise BusinessRuleViolationError("Activity date cannot be in the future")
+            raise BusinessRuleViolationError(
+                "Activity date cannot be in the future")
 
         # Garante que performed_at e program_found.start_date sejam comparáveis
         start_date = program_found.start_date
@@ -124,4 +125,5 @@ class Create:
                 raise BusinessRuleViolationError(
                     "Activity date is outside the program date range"
                 )
-                return performed_at
+
+        return performed_at
