@@ -1,22 +1,22 @@
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 
+from app.api.activity import router as activity_router
+from app.api.health import router as health_router
+from app.api.program import router as program_router
+from app.api.user_router import router as user_router
+from app.core.config import settings
+from app.api.slack import router as slack_router
 from app.exceptions.business import (
     BusinessException,
-    EntityNotFoundError,
-    DatabaseError,
     BusinessRuleViolationError,
+    DatabaseError,
     DuplicateEntityError,
+    EntityNotFoundError,
 )
-from app.api.health import router as health_router
-from app.api.user import router as user_router
-from app.api.activity import router as activity_router
-from app.api.program import router as program_router
-from app.api.slack import router as slack_router
-from app.core.config import settings
+
 
 def setup_exception_handlers(app: FastAPI):
-
     @app.exception_handler(EntityNotFoundError)
     async def not_found_handler(request, exc):
         return JSONResponse(
