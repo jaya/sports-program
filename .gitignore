@@ -25,3 +25,4 @@ poetry.lock
 
 # Alembic
 alembic/versions/*.pyc
+.python-version

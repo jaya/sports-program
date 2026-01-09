@@ -55,11 +55,30 @@ uvicorn app.main:app --reload
 ```
 
 ## 🤖 Slack Integration
-1. Create a Slack App  
-2. Enable required permissions  
-3. Set up event subscriptions  
-4. Use ngrok or Cloudflare Tunnel to expose your API  
-5. Connect Slack events to FastAPI routes
+
+The application uses the **Slack Bolt** framework to handle interactions. You need to configure your Slack App credentials to allow the bot to communicate with the workspace.
+
+### Configuration Steps
+
+1. **Create or Select an App**:
+   - Go to [Slack Apps](https://api.slack.com/apps).
+   - Create a new app or select an existing one.
+
+2. **Get Credentials**:
+   - **Signing Secret**: Navigate to **Basic Information** > **App Credentials**. Copy the `Signing Secret`.
+   - **Bot Token**: Navigate to **OAuth & Permissions** > **OAuth Tokens for Your Workspace**. Copy the `Bot User OAuth Token` (starts with `xoxb-`).
+
+3. **Update Environment Variables**:
+   - Open your `.env` file (copied from `.env.example`).
+   - Fill in the variables:
+     ```env
+     SLACK_SIGNING_SECRET=your_signing_secret_here
+     SLACK_BOT_TOKEN=xoxb-your-bot-token-here
+     ```
+
+4. **Development Setup**:
+   - Ensure your bot has the required **Bot Token Scopes** (e.g., `commands`, `chat:write`, `app_mentions:read`) under **OAuth & Permissions**.
+   - Reinstall the app to your workspace if you add new scopes.
 
 ## 🤝 Contributing
 This project encourages:

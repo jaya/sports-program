@@ -6,6 +6,7 @@ from app.api.health import router as health_router
 from app.api.program import router as program_router
 from app.api.user_router import router as user_router
 from app.core.config import settings
+from app.api.slack import router as slack_router
 from app.exceptions.business import (
     BusinessException,
     BusinessRuleViolationError,
@@ -58,6 +59,7 @@ app.include_router(health_router)
 app.include_router(user_router)
 app.include_router(activity_router)
 app.include_router(program_router)
+app.include_router(slack_router)
 setup_exception_handlers(app)
 
 
