@@ -69,9 +69,19 @@ This project encourages:
 - Documentation improvements  
 - Code reviews and refactoring
 
-## 🧪 Tests
+## 🧪 Tests and quality
+
+Tests:
+
 ```bash
 poetry run pytest
+```
+
+Ruff (linter)
+
+```bash
+poetry run ruff check .  (add --fix to automaged listed fixing rules)
+poetry run ruff format .
 ```
 
 ## 🏁 License
