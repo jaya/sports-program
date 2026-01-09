@@ -3,8 +3,8 @@ name = "sports-program"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "leco",email = "lcosta.sp.br@gmail.com"},
-    {name = "Welyab Paula",email = "welyab.exe@gmail.com"},
+    {name = "leco", email = "lcosta.sp.br@gmail.com"},
+    {name = "Welyab Paula", email = "welyab.exe@gmail.com"},
 ]
 readme = "README.md"
 requires-python = ">=3.13"
