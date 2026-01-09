@@ -1,7 +1,4 @@
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.database import get_db
 from app.exceptions.business import DatabaseError, DuplicateEntityError
 from app.models.user import User
 from app.schemas.user_schema import UserCreate
@@ -11,9 +8,9 @@ from app.repositories.user_repository import UserRepository
 class UserService:
     def __init__(
         self,
-        db: AsyncSession = Depends(get_db),
+        user_repo: UserRepository = Depends(),
     ):
-        self.user_repo = UserRepository(db)
+        self.user_repo = user_repo
 
     async def create(self, user: UserCreate):
         user_found = await self.user_repo.find_by_slack_id(user.slack_id)
