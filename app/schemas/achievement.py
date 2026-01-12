@@ -18,6 +18,7 @@ class AchievementCreate(BaseModel):
 class AchievementBatchCreate(BaseModel):
     user_ids: list[int]
     program_id: int
+    program_name: str
     cycle_reference: str
 
 
