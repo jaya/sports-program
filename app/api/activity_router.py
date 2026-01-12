@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Header, Path, Query, status, Response
 from fastapi.responses import JSONResponse
 from typing import List, Annotated
 
-from app.schemas.activity import (
+from app.schemas.activity_schema import (
     ActivityCreate,
     ActivityResponse,
     ActivitySummaryResponse,

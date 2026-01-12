@@ -11,7 +11,7 @@ from app.exceptions.business import (
     EntityNotFoundError,
 )
 from app.models.activity import Activity
-from app.schemas.activity import (
+from app.schemas.activity_schema import (
     ActivityCreate,
     ActivitySummaryResponse,
     ActivityUpdate,
