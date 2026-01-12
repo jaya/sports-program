@@ -1,45 +1,39 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from typing import List, Annotated
 
 from app.exceptions.business import EntityNotFoundError
 from app.schemas.program import ProgramCreate, ProgramResponse, ProgramUpdate
 from app.schemas.achievement import AchievementBatchResponse
-from app.services.programs.find_all import FindAll
-from app.services.programs.create import Create
-from app.services.programs.find_by_name import FindByName
-from app.services.programs.update import Update
-from app.services.programs.close_cycle import CloseCycle
+from app.services.program_service import ProgramService
+from app.orchestrators.close_cycle import CloseCycle
 
 router = APIRouter(tags=["Program"])
 
-FindAllServiceDep = Annotated[FindAll, Depends()]
-CreateServiceDep = Annotated[Create, Depends()]
-FindByNameServiceDep = Annotated[FindByName, Depends()]
-UpdateServiceDep = Annotated[Update, Depends()]
 CloseCycleServiceDep = Annotated[CloseCycle, Depends()]
+ProgramServiceDep = Annotated[ProgramService, Depends()]
 
 
 @router.get("/programs", response_model=List[ProgramResponse])
-async def get_programs(service: FindAllServiceDep):
-    return await service.execute()
+async def get_programs(service: ProgramServiceDep):
+    return await service.find_all()
 
 
 @router.get("/programs/{slack_channel}/{name}", response_model=ProgramResponse)
-async def get_program_by_name(name: str, slack_channel: str, service: FindByNameServiceDep):
-    program = await service.execute(name, slack_channel)
+async def get_program_by_slack_channel_and_name(name: str, slack_channel: str, service: ProgramServiceDep):
+    program = await service.find_by_name_and_slack_channel(name, slack_channel)
     if not program:
         raise EntityNotFoundError("Program", name)
     return program
 
 
 @router.post("/programs", response_model=ProgramResponse, status_code=status.HTTP_201_CREATED)
-async def create_program(program: ProgramCreate, service: CreateServiceDep):
-    return await service.execute(program)
+async def create_program(program: ProgramCreate, service: ProgramServiceDep):
+    return await service.create(program)
 
 
 @router.patch("/programs/{program_id}", response_model=ProgramResponse, status_code=status.HTTP_200_OK)
-async def update_program(program_id: int, program: ProgramUpdate, service: UpdateServiceDep):
-    return await service.execute(program_id, program)
+async def update_program(program_id: int, program: ProgramUpdate, service: ProgramServiceDep):
+    return await service.update(program_id, program)
 
 
 @router.post(
