@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.program import ProgramCreate
+from app.schemas.program_schema import ProgramCreate
 from app.services.program_service import ProgramService
 from app.repositories.program_repository import ProgramRepository
 

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from typing import List, Annotated
 
 from app.exceptions.business import EntityNotFoundError
-from app.schemas.program import ProgramCreate, ProgramResponse, ProgramUpdate
+from app.schemas.program_schema import ProgramCreate, ProgramResponse, ProgramUpdate
 from app.schemas.achievement import AchievementBatchResponse
 from app.services.program_service import ProgramService
 from app.orchestrators.close_cycle import CloseCycle

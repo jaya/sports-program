@@ -29,12 +29,3 @@ class ProgramRepository(BaseRepository[Program]):
         stmt = select(Program).where(Program.slack_channel == slack_channel)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
-
-    async def update(self, program: Program) -> Program:
-        try:
-            await self.session.commit()
-            await self.session.refresh(program)
-        except Exception:
-            await self.session.rollback()
-            raise
-        return program

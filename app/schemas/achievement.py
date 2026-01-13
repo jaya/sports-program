@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.program import ProgramSimple
+from app.schemas.program_schema import ProgramSimple
 from app.schemas.user_schema import UserBase
 
 

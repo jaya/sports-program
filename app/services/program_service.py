@@ -2,7 +2,7 @@ from fastapi import Depends
 from typing import List
 
 from app.repositories.program_repository import ProgramRepository
-from app.schemas.program import ProgramCreate, ProgramUpdate, ProgramResponse
+from app.schemas.program_schema import ProgramCreate, ProgramUpdate, ProgramResponse
 from app.models.program import Program
 from app.exceptions.business import DuplicateEntityError
 from app.exceptions.business import BusinessRuleViolationError
