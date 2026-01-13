@@ -11,6 +11,8 @@ from app.interfaces.slack.slack_views import (
     create_program_success_blocks,
     create_programs_list_blocks,
 )
+from app.repositories.program_repository import ProgramRepository
+from app.services.program_service import ProgramService
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -27,21 +29,24 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
 
     if not program_name:
         await context.say(
-            "Por favor, forneça um nome para o programa. Exemplo: `/create-program <nome-do-programa>`"
+            "Por favor, forneça um nome para o programa. "
+            "Exemplo: `/create-program <nome-do-programa>`"
         )
         return
 
     db = context["db"]
 
     try:
-        program = await create_program_action(db, program_name, channel_id)
+        repo = ProgramRepository(session=db)
+        service = ProgramService(program_repo=repo)
+        program = await create_program_action(service, program_name, channel_id)
 
         blocks = create_program_success_blocks(
             program.name, program.slack_channel, program.start_date, program.end_date
         )
     except Exception as e:
-        logger.error(f"Erro ao criar o programa: {str(e)}", exc_info=True)
-        await context.say(f"Erro ao criar o programa: {str(e)}")
+        logger.error(f"Error on creating program: {str(e)}", exc_info=True)
+        await context.say(f"Error on creating program: {str(e)}")
         return
 
     await context.say(
@@ -57,7 +62,9 @@ async def handle_list_programs(ack: Ack, command: dict, context: BoltContext):
     await ack()
     db = context["db"]
     try:
-        programs = await list_programs_action(db)
+        repo = ProgramRepository(session=db)
+        service = ProgramService(program_repo=repo)
+        programs = await list_programs_action(service)
         blocks = create_programs_list_blocks(programs)
     except Exception as e:
         logger.error(f"Error listing programs: {str(e)}", exc_info=True)

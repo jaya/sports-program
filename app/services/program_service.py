@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import Depends
 
 from app.exceptions.business import (
@@ -12,7 +14,7 @@ from app.schemas.program_schema import ProgramCreate, ProgramResponse, ProgramUp
 
 
 class ProgramService:
-    def __init__(self, program_repo: ProgramRepository = Depends()):
+    def __init__(self, program_repo: Annotated[ProgramRepository, Depends()]):
         self.program_repo = program_repo
 
     async def create(self, program: ProgramCreate) -> ProgramResponse:
