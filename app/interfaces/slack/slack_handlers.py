@@ -93,6 +93,10 @@ async def handle_app_mention(event: dict, context: BoltContext):
     text = event.get("text", "")
     user_id = event.get("user")
     channel_id = event.get("channel")
+    files = event.get("files", [{}])
+    if len(files) > 0:
+        evidence_url = files[0].get("url_private")
+
     description, activity_date = parse_activity_date(text)
 
     if activity_date is None:
@@ -113,6 +117,7 @@ async def handle_app_mention(event: dict, context: BoltContext):
             activity_create=ActivityCreate(
                 description=description,
                 performed_at=activity_date,
+                evidence_url=evidence_url,
             ),
         )
 
@@ -135,5 +140,5 @@ async def handle_app_mention(event: dict, context: BoltContext):
 
 
 @slack_app.event("message")
-async def handle_message_events(body, logger):
+async def handle_message_events(body):
     logger.info(body)
