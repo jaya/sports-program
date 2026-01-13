@@ -5,12 +5,14 @@ from datetime import date
 from slack_bolt import Ack, BoltContext
 
 from app.core.slack import slack_app
-from app.interfaces.slack.actions import create_program_action
+from app.interfaces.slack.actions import create_program_action, register_activity_action
 from app.interfaces.slack.views import (
     activity_registered_blocks,
     create_program_success_blocks,
+    error_blocks,
     invalid_date_blocks,
 )
+from app.schemas.activity_schema import ActivityCreate
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -103,13 +105,33 @@ async def handle_app_mention(event: dict, context: BoltContext):
         )
         return
 
-    blocks = activity_registered_blocks(description, activity_date)
-    await context.client.chat_postEphemeral(
-        channel=channel_id,
-        user=user_id,
-        blocks=blocks,
-        text="Atividade registrada!",
-    )
+    try:
+        await register_activity_action(
+            db=context["db"],
+            slack_channel=channel_id,
+            slack_user_id=user_id,
+            activity_create=ActivityCreate(
+                description=description,
+                performed_at=activity_date,
+            ),
+        )
+
+        blocks = activity_registered_blocks(description, activity_date)
+        await context.client.chat_postEphemeral(
+            channel=channel_id,
+            user=user_id,
+            blocks=blocks,
+            text="Atividade registrada!",
+        )
+    except Exception as e:
+        blocks = error_blocks(str(e))
+        await context.client.chat_postEphemeral(
+            channel=channel_id,
+            user=user_id,
+            blocks=blocks,
+            text="Erro ao registrar atividade",
+        )
+        return
 
 
 @slack_app.event("message")

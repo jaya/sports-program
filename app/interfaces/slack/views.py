@@ -85,3 +85,30 @@ def invalid_date_blocks() -> list[dict]:
             },
         },
     ]
+
+
+def error_blocks(message: str) -> list[dict]:
+    """
+    Build blocks for generic error messages.
+    """
+    return [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": ":warning: Ocorreu um erro",
+                "emoji": True,
+            },
+        },
+        {"type": "divider"},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    f"Não foi possível completar a operação.\n\n"
+                    f":information_source: *Detalhes:* {message}"
+                ),
+            },
+        },
+    ]
