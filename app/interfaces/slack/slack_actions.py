@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.program import ProgramCreate
 from app.services.programs.create import Create as CreateProgram
+from app.services.programs.find_all import FindAll
 from app.services.programs.find_by_name_and_slack_channel import (
     FindByNameAndSlackChannel,
 )
@@ -23,3 +25,8 @@ async def create_program_action(db: AsyncSession, name: str, slack_channel: str)
     service = CreateProgram(db=db, program_find_by_name_slack_channel=repo)
 
     return await service.execute(program_create)
+
+
+async def list_programs_action(db: AsyncSession):
+    service = FindAll(db=db)
+    return await service.execute()
