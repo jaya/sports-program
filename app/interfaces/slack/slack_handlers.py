@@ -60,7 +60,7 @@ async def handle_list_programs(ack: Ack, command: dict, context: BoltContext):
         programs = await list_programs_action(db)
         blocks = create_programs_list_blocks(programs)
     except Exception as e:
-        logger.error(f"Erro ao listar os programas: {str(e)}", exc_info=True)
-        await context.say(f"Erro ao listar os programas: {str(e)}")
+        logger.error(f"Error listing programs: {str(e)}", exc_info=True)
+        await context.say(f"Error listing programs: {str(e)}")
         return
     await context.say(blocks=blocks, text="Programas")

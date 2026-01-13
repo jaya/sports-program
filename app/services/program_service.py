@@ -1,32 +1,35 @@
 from fastapi import Depends
-from typing import List
 
-from app.repositories.program_repository import ProgramRepository
-from app.schemas.program_schema import ProgramCreate, ProgramUpdate, ProgramResponse
+from app.exceptions.business import (
+    BusinessRuleViolationError,
+    DatabaseError,
+    DuplicateEntityError,
+    EntityNotFoundError,
+)
 from app.models.program import Program
-from app.exceptions.business import DuplicateEntityError
-from app.exceptions.business import BusinessRuleViolationError
-from app.exceptions.business import DatabaseError
-from app.exceptions.business import EntityNotFoundError
+from app.repositories.program_repository import ProgramRepository
+from app.schemas.program_schema import ProgramCreate, ProgramResponse, ProgramUpdate
 
 
 class ProgramService:
-    def __init__(
-        self,
-        program_repo: ProgramRepository = Depends()
-    ):
+    def __init__(self, program_repo: ProgramRepository = Depends()):
         self.program_repo = program_repo
 
     async def create(self, program: ProgramCreate) -> ProgramResponse:
-        program_found = await self.program_repo.find_by_name_and_slack_channel(program.name, program.slack_channel)
+        program_found = await self.program_repo.find_by_name_and_slack_channel(
+            program.name, program.slack_channel
+        )
         if program_found:
             raise DuplicateEntityError("Program", "name", program.name)
         if program.end_date is not None and program.end_date <= program.start_date:
-            raise BusinessRuleViolationError(
-                "Start Date greater then End Date")
+            raise BusinessRuleViolationError("Start Date greater then End Date")
 
         db_program = Program(
-            name=program.name, slack_channel=program.slack_channel, start_date=program.start_date, end_date=program.end_date)
+            name=program.name,
+            slack_channel=program.slack_channel,
+            start_date=program.start_date,
+            end_date=program.end_date,
+        )
 
         try:
             created = await self.program_repo.create(db_program)
@@ -42,8 +45,7 @@ class ProgramService:
         if program_update.name and program_update.name != db_program.name:
             existing = await self.program_repo.find_by_name(program_update.name)
             if existing and existing.id != id:
-                raise DuplicateEntityError(
-                    "Program", "name", program_update.name)
+                raise DuplicateEntityError("Program", "name", program_update.name)
 
         update_data = program_update.model_dump(exclude_unset=True)
 
@@ -51,8 +53,7 @@ class ProgramService:
         end_date = update_data.get("end_date", db_program.end_date)
 
         if start_date and end_date and start_date > end_date:
-            raise BusinessRuleViolationError(
-                "Start Date greater than End Date")
+            raise BusinessRuleViolationError("Start Date greater than End Date")
 
         for key, value in update_data.items():
             setattr(db_program, key, value)
@@ -66,7 +67,7 @@ class ProgramService:
     async def find_by_id(self, id: int) -> Program:
         return await self.program_repo.get_by_id(id)
 
-    async def find_all(self) -> List[ProgramResponse]:
+    async def find_all(self) -> list[ProgramResponse]:
         return await self.program_repo.get_all()
 
     async def find_by_slack_channel(self, slack_channel: str) -> list[Program]:

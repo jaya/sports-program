@@ -2,10 +2,9 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.repositories.program_repository import ProgramRepository
 from app.schemas.program_schema import ProgramCreate
 from app.services.program_service import ProgramService
-from app.services.programs.find_all import FindAll
-from app.repositories.program_repository import ProgramRepository
 
 
 async def create_program_action(db: AsyncSession, name: str, slack_channel: str):
@@ -26,5 +25,6 @@ async def create_program_action(db: AsyncSession, name: str, slack_channel: str)
 
 
 async def list_programs_action(db: AsyncSession):
-    service = FindAll(db=db)
-    return await service.execute()
+    repo = ProgramRepository(session=db)
+    service = ProgramService(program_repo=repo)
+    return await service.find_all()
