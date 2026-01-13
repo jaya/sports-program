@@ -2,11 +2,9 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.program_repository import ProgramRepository
+from app.interfaces.slack.factories import get_activity_service, get_program_service
 from app.schemas.activity_schema import ActivityCreate
 from app.schemas.program_schema import ProgramCreate
-from app.services.activity_service import ActivityService
-from app.services.program_service import ProgramService
 
 
 async def create_program_action(db: AsyncSession, name: str, slack_channel: str):
@@ -20,8 +18,7 @@ async def create_program_action(db: AsyncSession, name: str, slack_channel: str)
         end_date=end_date,
     )
 
-    repo = ProgramRepository(session=db)
-    service = ProgramService(program_repo=repo)
+    service = get_program_service(db)
 
     return await service.create(program_create)
 
@@ -32,7 +29,7 @@ async def register_activity_action(
     slack_user_id: str,
     activity_create: ActivityCreate,
 ):
-    service = ActivityService(db=db)
+    service = get_activity_service(db)
     return await service.create(
         program_slack_channel=slack_channel,
         slack_id=slack_user_id,
