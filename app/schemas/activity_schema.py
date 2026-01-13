@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.exceptions.business import BusinessRuleViolationError
-from app.schemas.program import ProgramSimple
+from app.schemas.program_schema import ProgramSimple
 from app.schemas.user_schema import UserBase
 from app.utils.date_validator import is_within_allowed_window
 

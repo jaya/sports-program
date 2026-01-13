@@ -1,13 +1,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from fastapi import Depends
 
 from app.core.database import get_db
 from app.models.achievement import Achievement
 from app.models.user import User
-from app.models.program import Program
 from app.schemas.achievement import AchievementBatchCreate, AchievementBatchResponse
-from app.exceptions.business import DatabaseError
+from app.exceptions.business import DatabaseError, DuplicateEntityError
 
 
 class CreateBatch:
@@ -18,6 +18,9 @@ class CreateBatch:
         self,
         achievement_batch: AchievementBatchCreate
     ) -> AchievementBatchResponse:
+        users = await self._get_users(achievement_batch.user_ids)
+        user_names = [user.display_name for user in users]
+
         db_achievements = [
             Achievement(
                 user_id=user_id,
@@ -29,24 +32,23 @@ class CreateBatch:
         self.db.add_all(db_achievements)
         try:
             await self.db.commit()
+        except IntegrityError as e:
+            await self.db.rollback()
+            raise DuplicateEntityError(
+                entity="Achievement",
+                field="program/cycle_reference",
+                value=f"{achievement_batch.program_name}/{achievement_batch.cycle_reference}"
+            ) from e
         except Exception as e:
             await self.db.rollback()
             raise DatabaseError() from e
 
-        program = await self._get_program(achievement_batch.program_id)
-        users = await self._get_users(achievement_batch.user_ids)
-
         return AchievementBatchResponse(
             total_created=len(db_achievements),
-            program_name=program.name,
+            program_name=achievement_batch.program_name,
             cycle_reference=achievement_batch.cycle_reference,
-            users=[user.display_name for user in users],
+            users=user_names,
         )
-
-    async def _get_program(self, program_id: int) -> Program:
-        stmt = select(Program).where(Program.id == program_id)
-        result = await self.db.execute(stmt)
-        return result.scalars().first()
 
     async def _get_users(self, user_ids: list[int]) -> list[User]:
         stmt = select(User).where(User.id.in_(user_ids))
