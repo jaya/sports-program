@@ -3,7 +3,8 @@ name = "sports-program"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "leco",email = "lcosta.sp.br@gmail.com"}
+    {name = "leco", email = "lcosta.sp.br@gmail.com"},
+    {name = "Welyab Paula", email = "welyab.exe@gmail.com"},
 ]
 readme = "README.md"
 requires-python = ">=3.13"
@@ -30,7 +31,32 @@ package-mode = false
 pytest = "^8.4.0"
 pylint = "^3.3.6"
 coverage = "^7.8.0"
+ruff = "^0.9.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort (import sorting)
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade (upgrades syntax for newer python versions)
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
