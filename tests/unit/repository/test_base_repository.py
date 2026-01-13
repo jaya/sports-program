@@ -59,3 +59,37 @@ async def test_base_repository_get_all():
     
     session.execute.assert_called_once()
     assert result == objs
+
+@pytest.mark.anyio
+async def test_base_repository_create_many():
+    session = AsyncMock(spec=AsyncSession)
+    repo = BaseRepository(session, User)
+    objs = [User(id=1), User(id=2)]
+    
+    result = await repo.create_many(objs)
+    
+    session.add_all.assert_called_once_with(objs)
+    session.commit.assert_called_once()
+    assert result == objs
+
+@pytest.mark.anyio
+async def test_base_repository_create_many_empty():
+    session = AsyncMock(spec=AsyncSession)
+    repo = BaseRepository(session, User)
+    
+    result = await repo.create_many([])
+    
+    session.add_all.assert_not_called()
+    assert result == []
+
+@pytest.mark.anyio
+async def test_base_repository_create_many_rollback_on_exception():
+    session = AsyncMock(spec=AsyncSession)
+    session.commit.side_effect = Exception("DB Error")
+    repo = BaseRepository(session, User)
+    objs = [User(id=1)]
+    
+    with pytest.raises(Exception, match="DB Error"):
+        await repo.create_many(objs)
+    
+    session.rollback.assert_called_once()
