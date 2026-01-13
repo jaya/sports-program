@@ -30,3 +30,58 @@ def create_program_success_blocks(
             },
         },
     ]
+
+
+def activity_registered_blocks(description: str, activity_date: str) -> list[dict]:
+    """
+    Build blocks for successful activity registration message.
+    """
+    return [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": ":white_check_mark: Atividade registrada!",
+                "emoji": True,
+            },
+        },
+        {"type": "divider"},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    f"*{description}*\n"
+                    f":memo: Descrição: {description}\n"
+                    f":calendar: Data: {activity_date}"
+                ),
+            },
+        },
+    ]
+
+
+def invalid_date_blocks() -> list[dict]:
+    """
+    Build blocks for invalid date error message.
+    """
+    return [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": ":x: Data inválida!",
+                "emoji": True,
+            },
+        },
+        {"type": "divider"},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    "Por favor, use o formato `@DD/MM` com uma data válida.\n"
+                    ":bulb: Exemplo: `@13/01` para 13 de janeiro."
+                ),
+            },
+        },
+    ]
