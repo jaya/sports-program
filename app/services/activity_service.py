@@ -19,9 +19,7 @@ from app.schemas.activity_schema import (
 from app.schemas.user_schema import UserCreate
 from app.repositories.activity_repository import ActivityRepository
 from app.services.user_service import UserService
-from app.services.programs.find_by_slack_channel import FindBySlackChannel
-from app.services.programs.find_by_id import FindById as ProgramFindById
-from app.services.programs.find_by_name import FindByName as ProgramFindByName
+from app.services.program_service import ProgramService
 from app.services.utils.reference_date import ReferenceDate
 from app.utils.date_validator import is_within_allowed_window
 
@@ -33,15 +31,11 @@ class ActivityService:
         self,
         db: AsyncSession = Depends(get_db),
         user_service: UserService = Depends(),
-        program_find_by_slack_channel: FindBySlackChannel = Depends(),
-        program_find_by_id: ProgramFindById = Depends(),
-        program_find_by_name: ProgramFindByName = Depends(),
+        program_service: ProgramService = Depends()
     ):
         self.db = db
         self.user_service = user_service
-        self.program_find_by_slack_channel = program_find_by_slack_channel
-        self.program_find_by_id = program_find_by_id
-        self.program_find_by_name = program_find_by_name
+        self.program_service = program_service
         self.activity_repo = ActivityRepository(db)
 
     async def create(
@@ -102,7 +96,7 @@ class ActivityService:
         if not db_activity:
             raise EntityNotFoundError("Activity", id)
 
-        program_found = await self.program_find_by_id.execute(db_activity.program_id)
+        program_found = await self.program_service.find_by_id(db_activity.program_id)
         if not program_found:
             raise EntityNotFoundError("Program", db_activity.program_id)
 
@@ -110,7 +104,8 @@ class ActivityService:
             activity_update.performed_at is not None
             and activity_update.performed_at != db_activity.performed_at
         ):
-            self._validate_performed_at(program_found, activity_update.performed_at)
+            self._validate_performed_at(
+                program_found, activity_update.performed_at)
             existing_activity = await self.activity_repo.check_activity_same_day(
                 program_found.id, user_id, activity_update.performed_at.date(), id
             )
@@ -186,7 +181,7 @@ class ActivityService:
     async def find_all_user_by_program_completed(
         self, program_name: str, cycle_reference: str
     ) -> List[int]:
-        program_found = await self.program_find_by_name.execute(program_name)
+        program_found = await self.program_service.find_by_name(program_name)
         if not program_found:
             raise EntityNotFoundError("Program", program_name)
 
@@ -206,7 +201,7 @@ class ActivityService:
             return new_user.id
 
     async def _validate_program_by_slack_channel(self, program_slack_channel: str):
-        program_found = await self.program_find_by_slack_channel.execute(
+        program_found = await self.program_service.find_by_slack_channel(
             program_slack_channel
         )
         if not program_found:
@@ -227,7 +222,8 @@ class ActivityService:
             performed_at = datetime.now()
 
         if performed_at > datetime.now():
-            raise BusinessRuleViolationError("Activity date cannot be in the future")
+            raise BusinessRuleViolationError(
+                "Activity date cannot be in the future")
 
         start_date = program_found.start_date
         if performed_at.tzinfo is None and start_date.tzinfo is not None:

@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.program import ProgramSimple
+from app.schemas.program_schema import ProgramSimple
 from app.schemas.user_schema import UserBase
 
 
@@ -18,6 +18,7 @@ class AchievementCreate(BaseModel):
 class AchievementBatchCreate(BaseModel):
     user_ids: list[int]
     program_id: int
+    program_name: str
     cycle_reference: str
 
 

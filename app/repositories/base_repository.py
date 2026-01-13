@@ -30,3 +30,13 @@ class BaseRepository(Generic[ModelType]):
         query = select(self.model)
         result = await self.session.execute(query)
         return result.scalars().all()
+
+    async def update(self, obj_in: ModelType) -> Optional[ModelType]:
+        self.session.add(obj_in)
+        try:
+            await self.session.commit()
+            await self.session.refresh(obj_in)
+        except Exception:
+            await self.session.rollback()
+            raise
+        return obj_in
