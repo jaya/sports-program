@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from app.models.activity import Activity
+
 
 def create_program_success_blocks(
     program_name: str,
@@ -26,7 +28,12 @@ def create_program_success_blocks(
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"*{program_name}*\n:hash: Canal: <#{slack_channel}>\n:calendar: Início: {p_start_date}\n:checkered_flag: Fim: {p_end_date}",
+                "text": (
+                    f"*{program_name}*\n"
+                    f":hash: Canal: <#{slack_channel}>\n"
+                    f":calendar: Início: {p_start_date}\n"
+                    f":checkered_flag: Fim: {p_end_date}"
+                ),
             },
         },
     ]
@@ -112,3 +119,47 @@ def error_blocks(message: str) -> list[dict]:
             },
         },
     ]
+
+
+def activities_list_blocks(activities: list[Activity]) -> list[dict]:
+    """
+    Build blocks for a list of activities.
+    """
+    blocks = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": "Activities List",
+                "emoji": True,
+            },
+        },
+        {"type": "divider"},
+    ]
+
+    for activity in activities:
+        evidence_text = ""
+        if activity.evidence_url:
+            evidence_text = f"\n:link: <{activity.evidence_url}|Evidence>"
+
+        performed_date = activity.performed_at.strftime("%d/%m/%Y")
+        created_date = activity.created_at.strftime("%d/%m/%Y")
+
+        blocks.extend(
+            [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": (
+                            f"*{activity.description}*{evidence_text}\n"
+                            f":calendar: Performed: {performed_date}\n"
+                            f":clock1: Created: {created_date}"
+                        ),
+                    },
+                },
+                {"type": "divider"},
+            ]
+        )
+
+    return blocks

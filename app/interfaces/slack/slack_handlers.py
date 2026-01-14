@@ -3,8 +3,13 @@ import logging
 from slack_bolt import Ack, BoltContext
 
 from app.core.slack import slack_app
-from app.interfaces.slack.actions import create_program_action, register_activity_action
+from app.interfaces.slack.actions import (
+    create_program_action,
+    list_activities_action,
+    register_activity_action,
+)
 from app.interfaces.slack.views import (
+    activities_list_blocks,
     activity_registered_blocks,
     create_program_success_blocks,
     error_blocks,
@@ -48,6 +53,32 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
     await context.say(
         blocks=blocks, text=f"Programa {program.name} criado com sucesso!"
     )
+
+
+@slack_app.command("/list-activities")
+async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
+    await ack()
+    user_id = command.get("user")
+    channel_id = command.get("channel_id")
+
+    db = context["db"]
+
+    try:
+        activities = await list_activities_action(db, channel_id, user_id)
+
+        blocks = activities_list_blocks(activities)
+
+        await context.say(blocks=blocks, text="Atividades:")
+
+    except Exception as e:
+        blocks = error_blocks(str(e))
+        await context.client.chat_postEphemeral(
+            channel=channel_id,
+            user=user_id,
+            blocks=blocks,
+            text="Erro ao listar atividades",
+        )
+        return
 
 
 @slack_app.event("app_mention")
