@@ -1,22 +1,24 @@
+from typing import Annotated
+
 from fastapi import Depends
 
-from app.services.program_service import ProgramService
-from app.services.activity_service import ActivityService
-from app.services.achievements.create_batch import CreateBatch
-from app.schemas.achievement import AchievementBatchCreate, AchievementBatchResponse
 from app.exceptions.business import EntityNotFoundError
+from app.schemas.achievement import AchievementBatchCreate, AchievementBatchResponse
+from app.services.achievement_service import AchievementService
+from app.services.activity_service import ActivityService
+from app.services.program_service import ProgramService
 
 
 class CloseCycle:
     def __init__(
         self,
-        program_service: ProgramService = Depends(),
-        activity_service: ActivityService = Depends(),
-        create_batch: CreateBatch = Depends(),
+        program_service: Annotated[ProgramService, Depends()],
+        activity_service: Annotated[ActivityService, Depends()],
+        achievement_service: Annotated[AchievementService, Depends()],
     ):
         self.program_service = program_service
         self.activity_service = activity_service
-        self.create_batch = create_batch
+        self.achievement_service = achievement_service
 
     async def execute(
         self, program_name: str, cycle_reference: str
@@ -39,4 +41,4 @@ class CloseCycle:
             cycle_reference=cycle_reference,
         )
 
-        return await self.create_batch.execute(batch)
+        return await self.achievement_service.create_batch(batch)

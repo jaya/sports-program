@@ -26,3 +26,8 @@ poetry.lock
 # Alembic
 alembic/versions/*.pyc
 .python-version
+
+# Coverage
+htmlcov/
+.coverage
+.pytest_cache/
