@@ -1,6 +1,4 @@
 import logging
-import re
-from datetime import date
 
 from slack_bolt import Ack, BoltContext
 
@@ -13,47 +11,10 @@ from app.interfaces.slack.views import (
     invalid_date_blocks,
 )
 from app.schemas.activity_schema import ActivityCreate
+from app.utils.parsers import parse_activity_date
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
-
-
-def parse_activity_date(text: str) -> tuple[str, str | None]:
-    """
-    Parse activity description and date from text.
-
-    Extracts date in @DD/MM format and converts to ISO format (YYYY-MM-DD).
-    If no date is found, uses today's date.
-    If the date is invalid, returns None for the date.
-
-    Args:
-        text: The input text containing description and optional @DD/MM date
-
-    Returns:
-        Tuple of (description, iso_date or None if invalid)
-    """
-    # Pattern to match @DD/MM format
-    date_pattern = r"@(\d{1,2})/(\d{1,2})"
-    match = re.search(date_pattern, text)
-
-    # Clean up description first (remove date pattern and bot mention)
-    description = re.sub(date_pattern, "", text).strip()
-    description = re.sub(r"<@[A-Z0-9]+>", "", description).strip()
-    description = re.sub(r"\s+", " ", description)
-
-    if match:
-        day = int(match.group(1))
-        month = int(match.group(2))
-        try:
-            # Use current year
-            activity_date = date(date.today().year, month, day)
-            return description, activity_date.isoformat()
-        except ValueError:
-            # Invalid date (e.g., 31/02, 45/13)
-            return description, None
-    else:
-        activity_date = date.today()
-        return description, activity_date.isoformat()
 
 
 @slack_app.command("/create-program")
@@ -67,7 +28,8 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
 
     if not program_name:
         await context.say(
-            "Por favor, forneça um nome para o programa. Exemplo: `/create-program <nome-do-programa>`"
+            "Por favor, forneça um nome para o programa.\n"
+            "Exemplo: `/create-program <nome-do-programa>`"
         )
         return
 
