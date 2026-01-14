@@ -7,12 +7,11 @@ from app.interfaces.slack.slack_actions import (
     create_program_action,
     list_programs_action,
 )
+from app.interfaces.slack.slack_factories import get_program_service
 from app.interfaces.slack.slack_views import (
     create_program_success_blocks,
     create_programs_list_blocks,
 )
-from app.repositories.program_repository import ProgramRepository
-from app.services.program_service import ProgramService
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -37,8 +36,7 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
     db = context["db"]
 
     try:
-        repo = ProgramRepository(session=db)
-        service = ProgramService(program_repo=repo)
+        service = get_program_service(db)
         program = await create_program_action(service, program_name, channel_id)
 
         blocks = create_program_success_blocks(
@@ -62,8 +60,7 @@ async def handle_list_programs(ack: Ack, command: dict, context: BoltContext):
     await ack()
     db = context["db"]
     try:
-        repo = ProgramRepository(session=db)
-        service = ProgramService(program_repo=repo)
+        service = get_program_service(db)
         programs = await list_programs_action(service)
         blocks = create_programs_list_blocks(programs)
     except Exception as e:

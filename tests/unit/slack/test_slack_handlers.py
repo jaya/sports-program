@@ -35,8 +35,7 @@ async def test_handle_create_program_success(mock_ack, mock_context):
         patch(
             "app.interfaces.slack.slack_handlers.create_program_success_blocks"
         ) as mock_create_blocks,
-        patch("app.interfaces.slack.slack_handlers.ProgramRepository"),
-        patch("app.interfaces.slack.slack_handlers.ProgramService"),
+        patch("app.interfaces.slack.slack_handlers.get_program_service"),
     ):
         program = Program(
             id=1,
@@ -83,8 +82,7 @@ async def test_handle_create_program_error(mock_ack, mock_context):
             "app.interfaces.slack.slack_handlers.create_program_action",
             new_callable=AsyncMock,
         ) as mock_create_action,
-        patch("app.interfaces.slack.slack_handlers.ProgramRepository"),
-        patch("app.interfaces.slack.slack_handlers.ProgramService"),
+        patch("app.interfaces.slack.slack_handlers.get_program_service"),
     ):
         mock_create_action.side_effect = Exception("Test Error")
 
@@ -108,8 +106,7 @@ async def test_handle_list_programs_success(mock_ack, mock_context):
         patch(
             "app.interfaces.slack.slack_handlers.create_programs_list_blocks"
         ) as mock_list_blocks,
-        patch("app.interfaces.slack.slack_handlers.ProgramRepository"),
-        patch("app.interfaces.slack.slack_handlers.ProgramService"),
+        patch("app.interfaces.slack.slack_handlers.get_program_service"),
     ):
         mock_list_action.return_value = []
         mock_list_blocks.return_value = []
@@ -130,8 +127,7 @@ async def test_handle_list_programs_error(mock_ack, mock_context):
             "app.interfaces.slack.slack_handlers.list_programs_action",
             new_callable=AsyncMock,
         ) as mock_list_action,
-        patch("app.interfaces.slack.slack_handlers.ProgramRepository"),
-        patch("app.interfaces.slack.slack_handlers.ProgramService"),
+        patch("app.interfaces.slack.slack_handlers.get_program_service"),
     ):
         mock_list_action.side_effect = Exception("List Error")
 
