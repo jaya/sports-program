@@ -130,7 +130,7 @@ def activities_list_blocks(activities: list[Activity]) -> list[dict]:
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": "Activities List",
+                "text": "Lista de Atividades",
                 "emoji": True,
             },
         },
@@ -153,8 +153,8 @@ def activities_list_blocks(activities: list[Activity]) -> list[dict]:
                         "type": "mrkdwn",
                         "text": (
                             f"*{activity.description}*{evidence_text}\n"
-                            f":calendar: Performed: {performed_date}\n"
-                            f":clock1: Created: {created_date}"
+                            f":calendar: Realizada: {performed_date}\n"
+                            f":clock1: Registrada: {created_date}"
                         ),
                     },
                 },

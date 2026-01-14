@@ -55,10 +55,10 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
     )
 
 
-@slack_app.command("/list-activities")
+@slack_app.command("/list-activities-rafa")
 async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
     await ack()
-    user_id = command.get("user")
+    user_id = command.get("user_id")
     channel_id = command.get("channel_id")
 
     db = context["db"]
