@@ -48,13 +48,8 @@ class AchievementService:
             user_ids=achievement_batch.user_ids,
         )
 
-        for user_id in achievement_batch.user_ids:
-            if user_id in existing_user_ids:
-                logging.error(
-                    f"Achievement already exists for user {user_id}, "
-                    f"program {achievement_batch.program_id} "
-                    f"and cycle {achievement_batch.cycle_reference}"
-                )
+        if existing_user_ids:
+            logging.warning(f"Skipped {len(existing_user_ids)} existing users")
 
         new_user_ids = [
             uid for uid in achievement_batch.user_ids if uid not in existing_user_ids
