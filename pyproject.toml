@@ -3,8 +3,8 @@ name = "sports-program"
 version = "0.1.0"
 description = ""
 authors = [
-    {name = "leco", email = "lcosta.sp.br@gmail.com"},
-    {name = "Welyab Paula", email = "welyab.exe@gmail.com"},
+    { name = "leco", email = "lcosta.sp.br@gmail.com" },
+    { name = "Welyab Paula", email = "welyab.exe@gmail.com" },
 ]
 readme = "README.md"
 requires-python = ">=3.13"
@@ -32,6 +32,7 @@ pytest = "^8.4.0"
 pylint = "^3.3.6"
 coverage = "^7.8.0"
 ruff = "^0.9.0"
+pytest-cov = "^7.0.0"
 freezegun = "^1.5.5"
 
 [build-system]
@@ -44,11 +45,11 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort (import sorting)
-    "B",  # flake8-bugbear
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "I", # isort (import sorting)
+    "B", # flake8-bugbear
     "UP", # pyupgrade (upgrades syntax for newer python versions)
 ]
 ignore = []
@@ -61,3 +62,29 @@ line-ending = "auto"
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+omit = [
+    "app/main.py",
+    "app/core/config.py",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.pytest.ini_options]
+addopts = "--cov=app --cov-report=html --cov-report=term-missing"
+pythonpath = ["."]
