@@ -48,7 +48,7 @@ def activity_registered_blocks(description: str, activity_date: str) -> list[dic
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": ":white_check_mark: Atividade registrada!",
+                "text": ":white_check_mark: Activity registered!",
                 "emoji": True,
             },
         },
@@ -59,8 +59,8 @@ def activity_registered_blocks(description: str, activity_date: str) -> list[dic
                 "type": "mrkdwn",
                 "text": (
                     f"*{description}*\n"
-                    f":memo: Descrição: {description}\n"
-                    f":calendar: Data: {activity_date}"
+                    f":memo: Description: {description}\n"
+                    f":calendar: Date: {activity_date}"
                 ),
             },
         },
@@ -76,7 +76,7 @@ def invalid_date_blocks() -> list[dict]:
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": ":x: Data inválida!",
+                "text": ":x: Invalid date!",
                 "emoji": True,
             },
         },
@@ -86,8 +86,8 @@ def invalid_date_blocks() -> list[dict]:
             "text": {
                 "type": "mrkdwn",
                 "text": (
-                    "Por favor, use o formato `@DD/MM` com uma data válida.\n"
-                    ":bulb: Exemplo: `@13/01` para 13 de janeiro."
+                    "Please use the format `@DD/MM` with a valid date.\n"
+                    ":bulb: Example: `@13/01` for January 13th."
                 ),
             },
         },
@@ -103,7 +103,7 @@ def error_blocks(message: str) -> list[dict]:
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": ":warning: Ocorreu um erro",
+                "text": ":warning: Error ocurred!",
                 "emoji": True,
             },
         },
@@ -113,8 +113,8 @@ def error_blocks(message: str) -> list[dict]:
             "text": {
                 "type": "mrkdwn",
                 "text": (
-                    f"Não foi possível completar a operação.\n\n"
-                    f":information_source: *Detalhes:* {message}"
+                    f"Was not possible to complete the operation.\n\n"
+                    f":information_source: *Details:* {message}"
                 ),
             },
         },
@@ -130,7 +130,7 @@ def activities_list_blocks(activities: list[Activity]) -> list[dict]:
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": "Lista de Atividades",
+                "text": "Activities List",
                 "emoji": True,
             },
         },
@@ -140,7 +140,7 @@ def activities_list_blocks(activities: list[Activity]) -> list[dict]:
     for activity in activities:
         evidence_text = ""
         if activity.evidence_url:
-            evidence_text = f"\n:link: <{activity.evidence_url}|Evidence>"
+            evidence_text = f"\n:link: <{activity.evidence_url}| Evidence>"
 
         performed_date = activity.performed_at.strftime("%d/%m/%Y")
         created_date = activity.created_at.strftime("%d/%m/%Y")
@@ -152,9 +152,9 @@ def activities_list_blocks(activities: list[Activity]) -> list[dict]:
                     "text": {
                         "type": "mrkdwn",
                         "text": (
-                            f"*{activity.description}*{evidence_text}\n"
-                            f":calendar: Realizada: {performed_date}\n"
-                            f":clock1: Registrada: {created_date}"
+                            f"*{activity.description}* {evidence_text}\n"
+                            f":calendar: Performed: {performed_date}\n"
+                            f":clock1: Registered: {created_date}"
                         ),
                     },
                 },

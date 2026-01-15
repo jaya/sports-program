@@ -68,7 +68,12 @@ async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
 
         blocks = activities_list_blocks(activities)
 
-        await context.say(blocks=blocks, text="Atividades:")
+        await context.client.chat_postEphemeral(
+            channel=channel_id,
+            user=user_id,
+            blocks=blocks,
+            text="Atividades:",
+        )
 
     except Exception as e:
         blocks = error_blocks(str(e))
