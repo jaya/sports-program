@@ -108,7 +108,7 @@ async def handle_app_mention(event: dict, context: BoltContext):
         return
 
     try:
-        await register_activity_action(
+        activity = await register_activity_action(
             db=context["db"],
             slack_channel=channel_id,
             slack_user_id=user_id,
@@ -119,7 +119,9 @@ async def handle_app_mention(event: dict, context: BoltContext):
             ),
         )
 
-        blocks = activity_registered_blocks(description, activity_date)
+        blocks = activity_registered_blocks(
+            description, activity_date, activity.count_month
+        )
         await context.client.chat_postEphemeral(
             channel=channel_id,
             user=user_id,

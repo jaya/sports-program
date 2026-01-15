@@ -39,7 +39,9 @@ def create_program_success_blocks(
     ]
 
 
-def activity_registered_blocks(description: str, activity_date: str) -> list[dict]:
+def activity_registered_blocks(
+    description: str, activity_date: str, count_month: int
+) -> list[dict]:
     """
     Build blocks for successful activity registration message.
     """
@@ -58,9 +60,19 @@ def activity_registered_blocks(description: str, activity_date: str) -> list[dic
             "text": {
                 "type": "mrkdwn",
                 "text": (
-                    f"*{description}*\n"
+                    f":checkered_flag: Number of activities recorded in this cycle: "
+                    f"*{count_month}*"
+                ),
+            },
+        },
+        {"type": "divider"},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
                     f":memo: Description: {description}\n"
-                    f":calendar: Date: {activity_date}"
+                    f":calendar: Date: {activity_date}\n"
                 ),
             },
         },
@@ -132,6 +144,17 @@ def activities_list_blocks(activities: list[Activity]) -> list[dict]:
                 "type": "plain_text",
                 "text": "Activities List",
                 "emoji": True,
+            },
+        },
+        {"type": "divider"},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    f":checkered_flag: Number of activities recorded in this cycle: "
+                    f"*{len(activities)}*"
+                ),
             },
         },
         {"type": "divider"},
