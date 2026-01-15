@@ -1,13 +1,15 @@
-from fastapi import Depends
-from typing import List
 
-from app.repositories.program_repository import ProgramRepository
-from app.schemas.program_schema import ProgramCreate, ProgramUpdate, ProgramResponse
+from fastapi import Depends
+
+from app.exceptions.business import (
+    BusinessRuleViolationError,
+    DatabaseError,
+    DuplicateEntityError,
+    EntityNotFoundError,
+)
 from app.models.program import Program
-from app.exceptions.business import DuplicateEntityError
-from app.exceptions.business import BusinessRuleViolationError
-from app.exceptions.business import DatabaseError
-from app.exceptions.business import EntityNotFoundError
+from app.repositories.program_repository import ProgramRepository
+from app.schemas.program_schema import ProgramCreate, ProgramResponse, ProgramUpdate
 
 
 class ProgramService:
@@ -66,7 +68,7 @@ class ProgramService:
     async def find_by_id(self, id: int) -> Program:
         return await self.program_repo.get_by_id(id)
 
-    async def find_all(self) -> List[ProgramResponse]:
+    async def find_all(self) -> list[ProgramResponse]:
         return await self.program_repo.get_all()
 
     async def find_by_slack_channel(self, slack_channel: str) -> list[Program]:

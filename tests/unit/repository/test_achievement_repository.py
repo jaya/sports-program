@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.achievement import Achievement
 from app.repositories.achievement_repository import AchievementRepository
 
 
