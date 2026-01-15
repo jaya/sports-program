@@ -60,8 +60,8 @@ def activity_registered_blocks(
             "text": {
                 "type": "mrkdwn",
                 "text": (
-                    f":checkered_flag: Number of activities recorded in this cycle: "
-                    f"*{count_month}*"
+                    f":checkered_flag: *Number of activities recorded in this cycle:* "
+                    f"{count_month}"
                 ),
             },
         },
@@ -71,8 +71,8 @@ def activity_registered_blocks(
             "text": {
                 "type": "mrkdwn",
                 "text": (
-                    f":memo: Description: {description}\n"
-                    f":calendar: Date: {activity_date}\n"
+                    f":memo: *Description:* {description}\n"
+                    f":calendar: *Date:* {activity_date}\n"
                 ),
             },
         },
@@ -100,6 +100,33 @@ def invalid_date_blocks() -> list[dict]:
                 "text": (
                     "Please use the format `@DD/MM` with a valid date.\n"
                     ":bulb: Example: `@13/01` for January 13th."
+                ),
+            },
+        },
+    ]
+
+
+def invalid_reference_date_blocks() -> list[dict]:
+    """
+    Build blocks for invalid reference date error message.
+    """
+    return [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": ":x: Invalid reference date!",
+                "emoji": True,
+            },
+        },
+        {"type": "divider"},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    "Please use the format `@MM/YYYY` with a valid date.\n"
+                    ":bulb: Example: `@01/2024` for January 2024."
                 ),
             },
         },
@@ -152,8 +179,8 @@ def activities_list_blocks(activities: list[Activity]) -> list[dict]:
             "text": {
                 "type": "mrkdwn",
                 "text": (
-                    f":checkered_flag: Number of activities recorded in this cycle: "
-                    f"*{len(activities)}*"
+                    f":checkered_flag: *Number of activities recorded in this cycle:* "
+                    f"{len(activities)}"
                 ),
             },
         },
@@ -163,7 +190,7 @@ def activities_list_blocks(activities: list[Activity]) -> list[dict]:
     for activity in activities:
         evidence_text = ""
         if activity.evidence_url:
-            evidence_text = f"\n:link: <{activity.evidence_url}| Evidence>"
+            evidence_text = f"\n:link: *Evidence:* <{activity.evidence_url}| link>"
 
         performed_date = activity.performed_at.strftime("%d/%m/%Y")
         created_date = activity.created_at.strftime("%d/%m/%Y")
@@ -175,9 +202,10 @@ def activities_list_blocks(activities: list[Activity]) -> list[dict]:
                     "text": {
                         "type": "mrkdwn",
                         "text": (
-                            f"*{activity.description}* {evidence_text}\n"
-                            f":calendar: Performed: {performed_date}\n"
-                            f":clock1: Registered: {created_date}"
+                            f":memo: *Description:* {activity.description}\n"
+                            f"{evidence_text}\n"
+                            f":calendar: *Performed:* {performed_date}\n"
+                            f":clock1: *Registered:* {created_date}"
                         ),
                     },
                 },

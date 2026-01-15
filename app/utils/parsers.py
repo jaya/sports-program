@@ -28,3 +28,13 @@ def parse_activity_date(text: str) -> tuple[str, str | None]:
     else:
         activity_date = date.today()
         return description, activity_date.isoformat()
+
+
+def parse_reference_date(text: str) -> str | None:
+    date_pattern = r"@(\d{1,2})/(\d{1,4})"
+    match = re.search(date_pattern, text)
+    if match:
+        month = int(match.group(1))
+        year = int(match.group(2))
+        return date(year, month, 1).strftime("%Y-%m")
+    return None

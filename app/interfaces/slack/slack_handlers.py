@@ -14,9 +14,10 @@ from app.interfaces.slack.views import (
     create_program_success_blocks,
     error_blocks,
     invalid_date_blocks,
+    invalid_reference_date_blocks,
 )
 from app.schemas.activity_schema import ActivityCreate
-from app.utils.parsers import parse_activity_date
+from app.utils.parsers import parse_activity_date, parse_reference_date
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -60,11 +61,25 @@ async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
     await ack()
     user_id = command.get("user_id")
     channel_id = command.get("channel_id")
+    text = command.get("text", "")
+    try:
+        reference_date = parse_reference_date(text)
+    except Exception:
+        blocks = invalid_reference_date_blocks()
+        await context.client.chat_postEphemeral(
+            channel=channel_id,
+            user=user_id,
+            blocks=blocks,
+            text="Data inválida!",
+        )
+        return
 
     db = context["db"]
 
     try:
-        activities = await list_activities_action(db, channel_id, user_id)
+        activities = await list_activities_action(
+            db, channel_id, user_id, reference_date
+        )
 
         blocks = activities_list_blocks(activities)
 
