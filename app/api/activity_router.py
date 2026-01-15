@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, Header, Path, Query, status, Response
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Header, Path, Query, Response, status
 from fastapi.responses import JSONResponse
-from typing import List, Annotated
 
 from app.schemas.activity_schema import (
     ActivityCreate,
@@ -15,7 +16,7 @@ router = APIRouter(tags=["Activity"])
 ActivityServiceDep = Annotated[ActivityService, Depends()]
 
 
-@router.get("/activities", response_model=List[ActivityResponse])
+@router.get("/activities", response_model=list[ActivityResponse])
 async def get_activities_by_user(
     service: ActivityServiceDep,
     x_slack_user_id: str = Header(..., title="ID Slack User"),
@@ -63,7 +64,7 @@ async def delete_activity(
 
 
 @router.get(
-    "/programs/{slack_channel}/activities", response_model=List[ActivityResponse]
+    "/programs/{slack_channel}/activities", response_model=list[ActivityResponse]
 )
 async def get_activities_by_user_and_program(
     service: ActivityServiceDep,

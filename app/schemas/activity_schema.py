@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -54,7 +53,7 @@ class ActivitySummaryResponse(BaseModel):
 class ActivityResponse(ActivityBase):
     id: int
     created_at: datetime
-    user: Optional[UserBase] = None
-    program: Optional[ProgramSimple] = None
+    user: UserBase | None = None
+    program: ProgramSimple | None = None
 
     model_config = ConfigDict(from_attributes=True)

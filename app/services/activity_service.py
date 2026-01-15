@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List, Optional
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,15 +10,15 @@ from app.exceptions.business import (
     EntityNotFoundError,
 )
 from app.models.activity import Activity
+from app.repositories.activity_repository import ActivityRepository
 from app.schemas.activity_schema import (
     ActivityCreate,
     ActivitySummaryResponse,
     ActivityUpdate,
 )
 from app.schemas.user_schema import UserCreate
-from app.repositories.activity_repository import ActivityRepository
-from app.services.user_service import UserService
 from app.services.program_service import ProgramService
+from app.services.user_service import UserService
 from app.services.utils.reference_date import ReferenceDate
 from app.utils.date_validator import is_within_allowed_window
 
@@ -156,7 +155,7 @@ class ActivityService:
             raise EntityNotFoundError("Activity", id)
         return activity
 
-    async def find_by_user(self, slack_id: str, reference_date: str) -> List[Activity]:
+    async def find_by_user(self, slack_id: str, reference_date: str) -> list[Activity]:
         user_found = await self.user_service.find_by_slack_id(slack_id)
         if not user_found:
             raise EntityNotFoundError("User", slack_id)
@@ -168,7 +167,7 @@ class ActivityService:
 
     async def find_by_user_and_program(
         self, program_slack_channel: str, slack_id: str, reference_date: str
-    ) -> List[Activity]:
+    ) -> list[Activity]:
         user_found = await self.user_service.find_by_slack_id(slack_id)
         if not user_found:
             raise EntityNotFoundError("User", slack_id)
@@ -180,7 +179,7 @@ class ActivityService:
 
     async def find_all_user_by_program_completed(
         self, program_name: str, cycle_reference: str
-    ) -> List[int]:
+    ) -> list[int]:
         program_found = await self.program_service.find_by_name(program_name)
         if not program_found:
             raise EntityNotFoundError("Program", program_name)
@@ -216,7 +215,7 @@ class ActivityService:
         return program_found[0]
 
     def _validate_performed_at(
-        self, program_found, performed_at: Optional[datetime]
+        self, program_found, performed_at: datetime | None
     ) -> datetime:
         if not performed_at:
             performed_at = datetime.now()

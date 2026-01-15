@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.repositories.program_repository import ProgramRepository
 from app.schemas.program_schema import ProgramCreate
 from app.services.program_service import ProgramService
-from app.repositories.program_repository import ProgramRepository
 
 
 async def create_program_action(db: AsyncSession, name: str, slack_channel: str):
