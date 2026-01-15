@@ -61,6 +61,31 @@ async def test_base_repository_get_all():
     assert result == objs
 
 @pytest.mark.anyio
+async def test_base_repository_update_success():
+    session = AsyncMock(spec=AsyncSession)
+    repo = BaseRepository(session, User)
+    obj = User(id=1, slack_id="U1", display_name="Updated Name")
+
+    result = await repo.update(obj)
+
+    session.add.assert_called_once_with(obj)
+    session.commit.assert_called_once()
+    session.refresh.assert_called_once_with(obj)
+    assert result == obj
+
+@pytest.mark.anyio
+async def test_base_repository_update_rollback_on_exception():
+    session = AsyncMock(spec=AsyncSession)
+    session.commit.side_effect = Exception("Update Error")
+    repo = BaseRepository(session, User)
+    obj = User(id=1)
+
+    with pytest.raises(Exception, match="Update Error"):
+        await repo.update(obj)
+
+    session.rollback.assert_called_once()
+
+@pytest.mark.anyio
 async def test_base_repository_create_many():
     session = AsyncMock(spec=AsyncSession)
     repo = BaseRepository(session, User)
