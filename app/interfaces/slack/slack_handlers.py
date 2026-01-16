@@ -158,6 +158,7 @@ async def handle_app_mention(event: dict, context: BoltContext):
     text = event.get("text", "")
     user_id = event.get("user")
     channel_id = event.get("channel")
+    evidence_url = None
     files = event.get("files", [{}])
     if len(files) > 0:
         evidence_url = files[0].get("url_private")
