@@ -29,6 +29,12 @@ class AchievementBatchResponse(BaseModel):
     users: list[str]
 
 
+class NotifyResponse(BaseModel):
+    total_notified: int
+    message: str
+    users: list[str] = []
+
+
 class AchievementResponse(AchievementBase):
     id: int
     user: UserBase

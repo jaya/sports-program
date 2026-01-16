@@ -5,9 +5,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class BasicConfig(BaseSettings):
     ENV_SCOPE: str | None = None
     APP_NAME: str = "Sports Program API"
+    DEBUG: bool = True
+
     SLACK_BOT_TOKEN: str = ""
     SLACK_SIGNING_SECRET: str = ""
-    DEBUG: bool = True
+    SLACK_NOTIFICATION_CHANNEL: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
@@ -28,7 +31,12 @@ class TestConfig(GlobalConfig):
 class ProdConfig(GlobalConfig):
     DEBUG: bool = False
 
-    @field_validator("DATABASE_URL", "SLACK_BOT_TOKEN", "SLACK_SIGNING_SECRET")
+    @field_validator(
+        "DATABASE_URL",
+        "SLACK_BOT_TOKEN",
+        "SLACK_SIGNING_SECRET",
+        "SLACK_NOTIFICATION_CHANNEL",
+    )
     @classmethod
     def check_must_be_set(cls, v: str | None) -> str:
         if not v:

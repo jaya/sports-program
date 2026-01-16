@@ -3,14 +3,23 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from app.exceptions.business import DatabaseError
+from app.core.config import settings
+from app.core.slack import slack_app
+from app.exceptions.business import (
+    BusinessRuleViolationError,
+    DatabaseError,
+    EntityNotFoundError,
+    ExternalServiceError,
+)
 from app.models.achievement import Achievement
 from app.repositories.achievement_repository import AchievementRepository
+from app.repositories.program_repository import ProgramRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.achievement import (
     AchievementBatchCreate,
     AchievementBatchResponse,
     AchievementCreate,
+    NotifyResponse,
 )
 
 
@@ -19,9 +28,11 @@ class AchievementService:
         self,
         achievement_repo: Annotated[AchievementRepository, Depends()],
         user_repo: Annotated[UserRepository, Depends()],
+        program_repo: Annotated[ProgramRepository, Depends()],
     ):
         self.achievement_repo = achievement_repo
         self.user_repo = user_repo
+        self.program_repo = program_repo
 
     async def create(
         self,
@@ -78,4 +89,61 @@ class AchievementService:
             program_name=achievement_batch.program_name,
             cycle_reference=achievement_batch.cycle_reference,
             users=[str(user.display_name) for user in users],
+        )
+
+    async def notify(
+        self,
+        program_name: str,
+        cycle_reference: str,
+    ) -> NotifyResponse:
+        notification_channel = settings.SLACK_NOTIFICATION_CHANNEL
+        if not notification_channel:
+            raise BusinessRuleViolationError(
+                "SLACK_NOTIFICATION_CHANNEL not configured in .env"
+            )
+
+        program = await self.program_repo.find_by_name(program_name)
+        if not program:
+            raise EntityNotFoundError("Program", program_name)
+
+        pending = await self.achievement_repo.find_pending_notification(
+            program_id=program.id,
+            cycle_reference=cycle_reference,
+        )
+
+        if not pending:
+            return NotifyResponse(
+                total_notified=0,
+                message="No pending achievements to notify.",
+            )
+
+        slack_mentions = [f"<@{ach.user.slack_id}>" for ach in pending]
+        user_names = [ach.user.display_name for ach in pending]
+        program_name = pending[0].program.name
+
+        mentions = ", ".join(slack_mentions)
+        message = (
+            f"{mentions}! Parabéns por completarem o desafio {program_name} "
+            f"no ciclo {cycle_reference}!"
+        )
+
+        try:
+            await slack_app.client.chat_postMessage(
+                channel=notification_channel,
+                text=message,
+            )
+        except Exception as e:
+            logging.error(f"Error sending Slack message: {e}")
+            raise ExternalServiceError(
+                service="Slack",
+                message="Failed to send notification"
+            ) from e
+
+        achievement_ids = [ach.id for ach in pending]
+        await self.achievement_repo.mark_as_notified(achievement_ids)
+
+        return NotifyResponse(
+            total_notified=len(pending),
+            message=message,
+            users=user_names,
         )
