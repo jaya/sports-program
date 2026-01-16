@@ -11,6 +11,7 @@ from app.schemas.achievement import (
     AchievementBatchCreate,
     AchievementBatchResponse,
     AchievementCreate,
+    AchievementCreateResponse,
 )
 
 
@@ -28,14 +29,30 @@ class AchievementService:
         achievement_create: AchievementCreate,
         program_id: int,
         user_id: int,
-    ):
+    ) -> AchievementCreateResponse | None: 
+        already_exists = await self.achievement_repo.exists(
+            user_id=user_id,
+            program_id=program_id,
+            cycle_reference=achievement_create.cycle_reference
+        )
+        
+        if already_exists:
+            logging.info(
+                f"Achievement already exists - "
+                f"user_id={user_id}, program_id={program_id}, "
+                f"cycle={achievement_create.cycle_reference}"
+            )
+            return None
+        
         db_achievement = Achievement(
             user_id=user_id,
             program_id=program_id,
             cycle_reference=achievement_create.cycle_reference,
         )
         try:
-            return await self.achievement_repo.create(db_achievement)
+            created = await self.achievement_repo.create(db_achievement)
+            logging.info(f"Achievement created for user {user_id}")
+            return created
         except Exception as e:
             raise DatabaseError() from e
 

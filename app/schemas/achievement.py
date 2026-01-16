@@ -36,3 +36,13 @@ class AchievementResponse(AchievementBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class AchievementCreateResponse(BaseModel):
+    id: int
+    user_id: int
+    program_id: int
+    cycle_reference: str
+    is_notified: bool
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
