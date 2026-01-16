@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy import select
+from sqlalchemy import select , exists as sql_exists
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -26,3 +26,21 @@ class AchievementRepository(BaseRepository[Achievement]):
         )
         result = await self.session.execute(stmt)
         return set(result.scalars().all())
+    
+    async def exists(
+        self, 
+        user_id: int, 
+        program_id: int, 
+        cycle_reference: str
+    ) -> bool:
+    
+        stmt = select(
+            sql_exists().where(
+                Achievement.user_id == user_id,
+                Achievement.program_id == program_id,
+                Achievement.cycle_reference == cycle_reference,
+            )
+    )
+        result = await self.session.execute(stmt)
+        return result.scalar()
+    

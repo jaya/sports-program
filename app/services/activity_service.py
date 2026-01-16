@@ -11,6 +11,7 @@ from app.exceptions.business import (
 )
 from app.models.activity import Activity
 from app.repositories.activity_repository import ActivityRepository
+from app.schemas.achievement import AchievementCreate
 from app.schemas.activity_schema import (
     ActivityCreate,
     ActivitySummaryResponse,
@@ -21,6 +22,8 @@ from app.services.program_service import ProgramService
 from app.services.user_service import UserService
 from app.services.utils.reference_date import ReferenceDate
 from app.utils.date_validator import is_within_allowed_window
+from app.services.achievement_service import AchievementService
+from app.services.utils.reference_date import is_previous_month
 
 GOAL_ACTIVITIES = 12
 
@@ -30,12 +33,14 @@ class ActivityService:
         self,
         db: AsyncSession = Depends(get_db),
         user_service: UserService = Depends(),
-        program_service: ProgramService = Depends()
+        program_service: ProgramService = Depends(),
+        achievement_service: AchievementService = Depends()
     ):
         self.db = db
         self.user_service = user_service
         self.program_service = program_service
         self.activity_repo = ActivityRepository(db)
+        self.achievement_service = achievement_service
 
     async def create(
         self,
@@ -77,6 +82,14 @@ class ActivityService:
             year=db_activity.performed_at.year,
             month=db_activity.performed_at.month,
         )
+
+        if is_previous_month(performed_at, datetime.now()) and (total_month >= GOAL_ACTIVITIES):
+            await self._generate_retroactive_achievement(
+                user_id,
+                program_found.id,
+                program_found,
+                performed_at
+            )
 
         return ActivitySummaryResponse(id=db_activity.id, count_month=total_month)
 
@@ -248,3 +261,23 @@ class ActivityService:
                 )
 
         return performed_at
+    
+    async def _generate_retroactive_achievement(
+        self,
+        user_id: int,
+        program_id: int,
+        program,
+        performed_at: datetime
+    ) -> None:
+        
+        try:
+            cycle_reference = f"{performed_at.year}-{performed_at.month:02d}"
+            achievement_create = AchievementCreate(cycle_reference=cycle_reference)
+
+            await self.achievement_service.create(
+                achievement_create=achievement_create,
+                user_id=user_id,
+                program_id=program_id,
+            )
+        except Exception:
+            pass
