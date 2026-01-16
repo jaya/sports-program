@@ -19,7 +19,7 @@ def create_program_success_blocks(
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": "Program successfully created!",
+                "text": "Programa criado com sucesso!",
                 "emoji": True,
             },
         },
@@ -31,8 +31,8 @@ def create_program_success_blocks(
                 "text": (
                     f"*{program_name}*\n"
                     f":hash: Channel: <#{slack_channel}>\n"
-                    f":calendar: Start: {p_start_date}\n"
-                    f":checkered_flag: End: {p_end_date}"
+                    f":calendar: Início: {p_start_date}\n"
+                    f":checkered_flag: Fim: {p_end_date}"
                 ),
             },
         },
@@ -58,8 +58,8 @@ def create_programs_list_blocks(programs: list[Program]) -> list[dict]:
                     "text": (
                         f"*{program.name}*\n"
                         f":hash: Channel: <#{program.slack_channel}>\n"
-                        f":calendar: Start: {start_date}\n"
-                        f":checkered_flag: End: {end_date}"
+                        f":calendar: Início: {start_date}\n"
+                        f":checkered_flag: Fim: {end_date}"
                     ),
                 },
             }
