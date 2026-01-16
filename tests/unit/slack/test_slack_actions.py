@@ -6,8 +6,11 @@ from freezegun import freeze_time
 
 from app.interfaces.slack.slack_actions import (
     create_program_action,
+    list_activities_action,
     list_programs_action,
+    register_activity_action,
 )
+from app.schemas.activity_schema import ActivityCreate
 from app.schemas.program_schema import ProgramResponse
 
 
@@ -67,3 +70,63 @@ async def test_list_programs_returns_all(mock_service):
     mock_service.find_all.assert_awaited_once()
     assert result == mock_list
     assert len(result) == 1
+
+
+@freeze_time("2026-01-16 12:00:00")
+@pytest.mark.anyio
+async def test_list_activities_defaults_to_current_month(mock_service):
+    # Action
+    await list_activities_action(
+        service=mock_service,
+        channel_id="C123",
+        slack_user_id="U123",
+    )
+
+    # Assert
+    mock_service.find_by_user_and_program.assert_awaited_once_with(
+        program_slack_channel="C123",
+        slack_id="U123",
+        reference_date="2026-01",
+    )
+
+
+@pytest.mark.anyio
+async def test_list_activities_uses_provided_date(mock_service):
+    # Action
+    await list_activities_action(
+        service=mock_service,
+        channel_id="C123",
+        slack_user_id="U123",
+        reference_date="2025-12",
+    )
+
+    # Assert
+    mock_service.find_by_user_and_program.assert_awaited_once_with(
+        program_slack_channel="C123",
+        slack_id="U123",
+        reference_date="2025-12",
+    )
+
+
+@pytest.mark.anyio
+async def test_register_activity(mock_service):
+    # Setup
+    activity_create = ActivityCreate(
+        description="Run 5km",
+        evidence_url="http://example.com/evidence.png",
+    )
+
+    # Action
+    await register_activity_action(
+        service=mock_service,
+        slack_channel="C123",
+        slack_user_id="U123",
+        activity_create=activity_create,
+    )
+
+    # Assert
+    mock_service.create.assert_awaited_once_with(
+        program_slack_channel="C123",
+        slack_id="U123",
+        activity_create=activity_create,
+    )
