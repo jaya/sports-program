@@ -18,19 +18,21 @@ def repo(mock_session):
     return ActivityRepository(mock_session)
 
 
+def mock_activity():
+    return Activity(
+        id=2,
+        user_id=1,
+        program_id=3,
+        description="Test Activity",
+        evidence_url=None,
+        performed_at="2025-12-15T10:00:00Z",
+        created_at="2025-12-15T10:00:00Z",
+    )
+
+
 @pytest.mark.anyio
 async def test_find_by_user_id_and_date(repo, mock_session):
-    activities = [
-        Activity(
-            id=2,
-            user_id=1,
-            program_id=3,
-            description="Test Activity",
-            evidence_url=None,
-            performed_at="2025-12-15T10:00:00Z",
-            created_at="2025-12-15T10:00:00Z",
-        )
-    ]
+    activities = [mock_activity()]
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = activities
@@ -45,15 +47,7 @@ async def test_find_by_user_id_and_date(repo, mock_session):
 
 @pytest.mark.anyio
 async def test_find_by_id_and_slack_id(repo, mock_session):
-    activities = Activity(
-        id=2,
-        user_id=1,
-        program_id=3,
-        description="Test Activity",
-        evidence_url=None,
-        performed_at="2025-12-15T10:00:00Z",
-        created_at="2025-12-15T10:00:00Z",
-    )
+    activities = mock_activity()
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = activities
@@ -67,17 +61,7 @@ async def test_find_by_id_and_slack_id(repo, mock_session):
 
 @pytest.mark.anyio
 async def test_find_by_user_id_and_slack_channel_and_date(repo, mock_session):
-    activities = [
-        Activity(
-            id=2,
-            user_id=1,
-            program_id=3,
-            description="Test Activity",
-            evidence_url=None,
-            performed_at="2025-12-15T10:00:00Z",
-            created_at="2025-12-15T10:00:00Z",
-        )
-    ]
+    activities = [mock_activity()]
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = activities
@@ -104,15 +88,7 @@ async def test_count_monthly(repo, mock_session):
 
 @pytest.mark.anyio
 async def test_check_activity_same_day(repo, mock_session):
-    activity = Activity(
-        id=2,
-        user_id=1,
-        program_id=3,
-        description="Test Activity",
-        evidence_url=None,
-        performed_at="2025-12-15T10:00:00Z",
-        created_at="2025-12-15T10:00:00Z",
-    )
+    activity = mock_activity()
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.first.return_value = activity
