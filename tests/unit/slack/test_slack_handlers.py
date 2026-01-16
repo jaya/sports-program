@@ -56,7 +56,7 @@ async def test_handle_create_program_success(mock_ack, mock_context):
         mock_context.say.assert_awaited_once()
         args, kwargs = mock_context.say.call_args
         assert (
-            "created com sucesso" in kwargs.get("text", "")
+            "created successfully" in kwargs.get("text", "")
             or kwargs.get("blocks") is not None
         )
 

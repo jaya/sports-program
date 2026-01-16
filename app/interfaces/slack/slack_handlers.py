@@ -28,8 +28,7 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
 
     if not program_name:
         await context.say(
-            "Por favor, forneça um nome para o programa. "
-            "Exemplo: `/create-program <nome-do-programa>`"
+            "Please provide a program name. Example: `/create-program <program-name>`"
         )
         return
 
@@ -48,7 +47,7 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
         return
 
     await context.say(
-        blocks=blocks, text=f"Programa {program.name} criado com sucesso!"
+        blocks=blocks, text=f"Program {program.name} successfully created!"
     )
 
 
@@ -67,4 +66,4 @@ async def handle_list_programs(ack: Ack, command: dict, context: BoltContext):
         logger.error(f"Error listing programs: {str(e)}", exc_info=True)
         await context.say(f"Error listing programs: {str(e)}")
         return
-    await context.say(blocks=blocks, text="Programas")
+    await context.say(blocks=blocks, text="Programs")
