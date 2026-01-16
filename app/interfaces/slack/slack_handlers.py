@@ -28,8 +28,8 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
 
     if not program_name:
         await context.say(
-            "Por favor, forneça um nome para o programa. "
-            "Exemplo: `/create-program <nome-do-programa>`"
+            "Please provide a name for the program. "
+            "Example: `/create-program <program-name>`"
         )
         return
 

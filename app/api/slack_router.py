@@ -12,3 +12,13 @@ app_handler = AsyncSlackRequestHandler(slack_app)
 @router.post("/events")
 async def slack_events(request: Request):
     return await app_handler.handle(request)
+
+
+@router.get("/install")
+async def slack_install(request: Request):
+    return await app_handler.handle(request)
+
+
+@router.get("/oauth_redirect")
+async def slack_oauth_redirect(request: Request):
+    return await app_handler.handle(request)

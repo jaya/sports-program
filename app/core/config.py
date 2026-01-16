@@ -7,6 +7,11 @@ class BasicConfig(BaseSettings):
     APP_NAME: str = "Sports Program API"
     SLACK_BOT_TOKEN: str = ""
     SLACK_SIGNING_SECRET: str = ""
+    SLACK_CLIENT_ID: str = ""
+    SLACK_CLIENT_SECRET: str = ""
+    SLACK_SCOPES: str = "commands,chat:write"
+    SLACK_INSTALL_PATH: str = "/slack/install"
+    SLACK_REDIRECT_URI_PATH: str = "/slack/oauth_redirect"
     DEBUG: bool = True
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -28,7 +33,12 @@ class TestConfig(GlobalConfig):
 class ProdConfig(GlobalConfig):
     DEBUG: bool = False
 
-    @field_validator("DATABASE_URL", "SLACK_BOT_TOKEN", "SLACK_SIGNING_SECRET")
+    @field_validator(
+        "DATABASE_URL",
+        "SLACK_SIGNING_SECRET",
+        "SLACK_CLIENT_ID",
+        "SLACK_CLIENT_SECRET",
+    )
     @classmethod
     def check_must_be_set(cls, v: str | None) -> str:
         if not v:
