@@ -1,5 +1,6 @@
 from typing import Any
 
+
 class BusinessException(Exception):
     pass
 
@@ -25,4 +26,10 @@ class BusinessRuleViolationError(BusinessException):
 class DatabaseError(Exception):
     def __init__(self, message: str = "An unexpected error occurred while processing your request."):
         self.message = message
+        super().__init__(self.message)
+
+
+class ExternalServiceError(BusinessException):
+    def __init__(self, service: str, message: str):
+        self.message = f"[{service}] {message}"
         super().__init__(self.message)

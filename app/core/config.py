@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     # Slack
     SLACK_BOT_TOKEN: str = ""
     SLACK_SIGNING_SECRET: str = ""
+    SLACK_NOTIFICATION_CHANNEL: str = ""
 
     class Config:
         env_file = ".env"
