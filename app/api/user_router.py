@@ -1,4 +1,4 @@
-from typing import Annotated, List
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
@@ -11,7 +11,7 @@ router = APIRouter(tags=["User"])
 UserServiceDep = Annotated[UserService, Depends()]
 
 
-@router.get("/users", response_model=List[UserResponse])
+@router.get("/users", response_model=list[UserResponse])
 async def get_users(service: UserServiceDep):
     return await service.find_all()
 

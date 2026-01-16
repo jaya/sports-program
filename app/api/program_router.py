@@ -1,11 +1,12 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, status
-from typing import List, Annotated
 
 from app.exceptions.business import EntityNotFoundError
-from app.schemas.program_schema import ProgramCreate, ProgramResponse, ProgramUpdate
-from app.schemas.achievement import AchievementBatchResponse
-from app.services.program_service import ProgramService
 from app.orchestrators.close_cycle import CloseCycle
+from app.schemas.achievement import AchievementBatchResponse
+from app.schemas.program_schema import ProgramCreate, ProgramResponse, ProgramUpdate
+from app.services.program_service import ProgramService
 
 router = APIRouter(tags=["Program"])
 
@@ -13,7 +14,7 @@ CloseCycleServiceDep = Annotated[CloseCycle, Depends()]
 ProgramServiceDep = Annotated[ProgramService, Depends()]
 
 
-@router.get("/programs", response_model=List[ProgramResponse])
+@router.get("/programs", response_model=list[ProgramResponse])
 async def get_programs(service: ProgramServiceDep):
     return await service.find_all()
 

@@ -1,13 +1,14 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.interfaces.slack.factories import get_activity_service, get_program_service
 from app.schemas.activity_schema import ActivityCreate
-from app.schemas.program_schema import ProgramCreate
+from app.schemas.program_schema import ProgramCreate, ProgramResponse
+from app.services.activity_service import ActivityService
+from app.services.program_service import ProgramService
 
 
-async def create_program_action(db: AsyncSession, name: str, slack_channel: str):
+async def create_program_action(
+    service: ProgramService, name: str, slack_channel: str
+) -> ProgramResponse:
     start_date = datetime.now()
     end_date = start_date + timedelta(days=30)
 
@@ -18,20 +19,21 @@ async def create_program_action(db: AsyncSession, name: str, slack_channel: str)
         end_date=end_date,
     )
 
-    service = get_program_service(db)
-
     return await service.create(program_create)
 
 
+async def list_programs_action(service: ProgramService) -> list[ProgramResponse]:
+    return await service.find_all()
+
+
 async def list_activities_action(
-    db: AsyncSession,
+    service: ActivityService,
     channel_id: str,
     slack_user_id: str,
     reference_date: str | None = None,
 ):
     if not reference_date:
         reference_date = datetime.now().strftime("%Y-%m")
-    service = get_activity_service(db)
     return await service.find_by_user_and_program(
         program_slack_channel=channel_id,
         slack_id=slack_user_id,
@@ -40,12 +42,11 @@ async def list_activities_action(
 
 
 async def register_activity_action(
-    db: AsyncSession,
+    service: ActivityService,
     slack_channel: str,
     slack_user_id: str,
     activity_create: ActivityCreate,
 ):
-    service = get_activity_service(db)
     return await service.create(
         program_slack_channel=slack_channel,
         slack_id=slack_user_id,

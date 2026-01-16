@@ -1,23 +1,23 @@
-from typing import Optional
+
+from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends
 
-from app.repositories.base_repository import BaseRepository
-from app.models.program import Program
 from app.core.database import get_db
+from app.models.program import Program
+from app.repositories.base_repository import BaseRepository
 
 
 class ProgramRepository(BaseRepository[Program]):
     def __init__(self, session: AsyncSession = Depends(get_db)):
         super().__init__(session, Program)
 
-    async def find_by_name(self, name: str) -> Optional[Program]:
+    async def find_by_name(self, name: str) -> Program | None:
         stmt = select(Program).where(Program.name == name)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def find_by_name_and_slack_channel(self, name: str, slack_channel: str) -> Optional[Program]:
+    async def find_by_name_and_slack_channel(self, name: str, slack_channel: str) -> Program | None:
         stmt = select(Program).where(
             Program.name == name,
             Program.slack_channel == slack_channel
