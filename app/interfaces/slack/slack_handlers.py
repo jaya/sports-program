@@ -29,7 +29,7 @@ logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 
-@slack_app.command("/create-program-rafa")
+@slack_app.command("/create-program")
 async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
     """
     Handle the /create-program command.
@@ -76,7 +76,7 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
     )
 
 
-@slack_app.command("/list-programs-rafa")
+@slack_app.command("/list-programs")
 async def handle_list_programs(ack: Ack, command: dict, context: BoltContext):
     """
     Handle the /list-programs command.
@@ -107,7 +107,7 @@ async def handle_list_programs(ack: Ack, command: dict, context: BoltContext):
     )
 
 
-@slack_app.command("/list-activities-rafa")
+@slack_app.command("/list-activities")
 async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
     await ack()
     user_id = command.get("user_id")
