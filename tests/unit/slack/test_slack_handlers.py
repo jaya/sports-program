@@ -70,7 +70,7 @@ async def test_handle_create_program_no_name(mock_ack, mock_context):
     mock_ack.assert_awaited_once()
     mock_context.say.assert_awaited_once()
     args, kwargs = mock_context.say.call_args
-    assert "forneça um nome" in args[0]
+    assert "provide a name" in args[0]
 
 
 @pytest.mark.anyio
