@@ -1,12 +1,12 @@
-from typing import List, Optional
 from datetime import date
-from sqlalchemy import select, func
-from sqlalchemy.orm import contains_eager
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import contains_eager
 
 from app.models.activity import Activity
-from app.models.user import User
 from app.models.program import Program
+from app.models.user import User
 from app.repositories.base_repository import BaseRepository
 
 
@@ -16,7 +16,7 @@ class ActivityRepository(BaseRepository[Activity]):
 
     async def find_by_user_id_and_date(
         self, user_id: int, year: int, month: int
-    ) -> List[Activity]:
+    ) -> list[Activity]:
         stmt = (
             select(Activity)
             .join(Activity.user)
@@ -32,7 +32,7 @@ class ActivityRepository(BaseRepository[Activity]):
 
     async def find_by_id_and_slack_id(
         self, id: int, slack_id: str
-    ) -> Optional[Activity]:
+    ) -> Activity | None:
         stmt = (
             select(Activity)
             .join(Activity.user)
@@ -45,7 +45,7 @@ class ActivityRepository(BaseRepository[Activity]):
 
     async def find_by_user_id_and_slack_channel_and_date(
         self, user_id: int, slack_channel: str, year: int, month: int
-    ) -> List[Activity]:
+    ) -> list[Activity]:
         stmt = (
             select(Activity)
             .join(Activity.user)
@@ -72,8 +72,8 @@ class ActivityRepository(BaseRepository[Activity]):
         program_id: int,
         user_id: int,
         activity_date: date,
-        exclude_id: Optional[int] = None,
-    ) -> Optional[Activity]:
+        exclude_id: int | None = None,
+    ) -> Activity | None:
         stmt = select(Activity).where(
             Activity.user_id == user_id,
             Activity.program_id == program_id,
@@ -86,7 +86,7 @@ class ActivityRepository(BaseRepository[Activity]):
 
     async def find_users_with_completed_program(
         self, program_id: int, year: int, month: int, goal: int
-    ) -> List[int]:
+    ) -> list[int]:
         stmt = (
             select(Activity.user_id)
             .where(

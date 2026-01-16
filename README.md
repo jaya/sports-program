@@ -116,7 +116,7 @@ poetry run pytest
 Ruff (linter)
 
 ```bash
-poetry run ruff check .  (add --fix to automaged listed fixing rules)
+poetry run ruff check .  (add --fix to automatically fix rules)
 poetry run ruff format .
 ```
 
