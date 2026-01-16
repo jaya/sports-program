@@ -19,6 +19,7 @@ def mock_ack():
 def mock_context():
     context = MagicMock()
     context.say = AsyncMock()
+    context.client.chat_postEphemeral = AsyncMock()
     context.__getitem__.return_value = MagicMock()
     return context
 
@@ -68,9 +69,9 @@ async def test_handle_create_program_no_name(mock_ack, mock_context):
     await handle_create_program(mock_ack, command, mock_context)
 
     mock_ack.assert_awaited_once()
-    mock_context.say.assert_awaited_once()
-    args, kwargs = mock_context.say.call_args
-    assert "forneça um nome" in args[0]
+    mock_context.client.chat_postEphemeral.assert_awaited_once()
+    _, kwargs = mock_context.client.chat_postEphemeral.call_args
+    assert "undefined program name" in kwargs.get("text", "")
 
 
 @pytest.mark.anyio
@@ -89,9 +90,9 @@ async def test_handle_create_program_error(mock_ack, mock_context):
         await handle_create_program(mock_ack, command, mock_context)
 
         mock_ack.assert_awaited_once()
-        mock_context.say.assert_awaited_once()
-        args, _ = mock_context.say.call_args
-        assert "Error on creating program" in args[0]
+        mock_context.client.chat_postEphemeral.assert_awaited_once()
+        _, kwargs = mock_context.client.chat_postEphemeral.call_args
+        assert "Error on creating program" in kwargs.get("text", "")
 
 
 @pytest.mark.anyio
@@ -115,7 +116,7 @@ async def test_handle_list_programs_success(mock_ack, mock_context):
 
         mock_ack.assert_awaited_once()
         mock_list_action.assert_awaited_once()
-        mock_context.say.assert_awaited_once()
+        mock_context.client.chat_postEphemeral.assert_awaited_once()
 
 
 @pytest.mark.anyio
@@ -134,6 +135,6 @@ async def test_handle_list_programs_error(mock_ack, mock_context):
         await handle_list_programs(mock_ack, command, mock_context)
 
         mock_ack.assert_awaited_once()
-        mock_context.say.assert_awaited_once()
-        args, _ = mock_context.say.call_args
-        assert "Error listing programs" in args[0]
+        mock_context.client.chat_postEphemeral.assert_awaited_once()
+        _, kwargs = mock_context.client.chat_postEphemeral.call_args
+        assert "Error on listing programs" in kwargs.get("text", "")

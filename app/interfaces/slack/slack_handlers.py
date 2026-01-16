@@ -29,19 +29,25 @@ logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 
-@slack_app.command("/create-program")
+@slack_app.command("/create-program-rafa")
 async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
     """
     Handle the /create-program command.
     """
     await ack()
     channel_id = command.get("channel_id")
+    user_id = command.get("user_id")
     program_name = command.get("text")
 
     if not program_name:
-        await context.say(
-            "Por favor, forneça um nome para o programa. "
-            "Exemplo: `/create-program <nome-do-programa>`"
+        blocks = error_blocks(
+            "Please, provide a program name. Example: `/create-program <program-name>`"
+        )
+        await context.client.chat_postEphemeral(
+            channel=channel_id,
+            user=user_id,
+            blocks=blocks,
+            text="Error on creating program because of undefined program name",
         )
         return
 
@@ -56,7 +62,13 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
         )
     except Exception as e:
         logger.error(f"Error on creating program: {str(e)}", exc_info=True)
-        await context.say(f"Error on creating program: {str(e)}")
+        blocks = error_blocks(str(e))
+        await context.client.chat_postEphemeral(
+            channel=channel_id,
+            user=user_id,
+            blocks=blocks,
+            text="Error on creating program",
+        )
         return
 
     await context.say(
@@ -64,22 +76,35 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
     )
 
 
-@slack_app.command("/list-programs")
+@slack_app.command("/list-programs-rafa")
 async def handle_list_programs(ack: Ack, command: dict, context: BoltContext):
     """
     Handle the /list-programs command.
     """
     await ack()
     db = context["db"]
+    channel_id = command.get("channel_id")
+    user_id = command.get("user_id")
     try:
         service = get_program_service(db)
         programs = await list_programs_action(service)
         blocks = create_programs_list_blocks(programs)
     except Exception as e:
         logger.error(f"Error listing programs: {str(e)}", exc_info=True)
-        await context.say(f"Error listing programs: {str(e)}")
+        blocks = error_blocks(str(e))
+        await context.client.chat_postEphemeral(
+            channel=channel_id,
+            user=user_id,
+            blocks=blocks,
+            text="Error on listing programs",
+        )
         return
-    await context.say(blocks=blocks, text="Programs")
+    await context.client.chat_postEphemeral(
+        channel=channel_id,
+        user=user_id,
+        blocks=blocks,
+        text="Programs",
+    )
 
 
 @slack_app.command("/list-activities-rafa")
@@ -96,7 +121,7 @@ async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
             channel=channel_id,
             user=user_id,
             blocks=blocks,
-            text="Data inválida!",
+            text="Invalid date!",
         )
         return
 
@@ -114,7 +139,7 @@ async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
             channel=channel_id,
             user=user_id,
             blocks=blocks,
-            text="Atividades:",
+            text="Activities:",
         )
 
     except Exception as e:
@@ -123,7 +148,7 @@ async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
             channel=channel_id,
             user=user_id,
             blocks=blocks,
-            text="Erro ao listar atividades",
+            text="Error on listing activities",
         )
         return
 
@@ -145,7 +170,7 @@ async def handle_app_mention(event: dict, context: BoltContext):
             channel=channel_id,
             user=user_id,
             blocks=blocks,
-            text="Data inválida!",
+            text="Invalid date!",
         )
         return
 
@@ -169,7 +194,7 @@ async def handle_app_mention(event: dict, context: BoltContext):
             channel=channel_id,
             user=user_id,
             blocks=blocks,
-            text="Atividade registrada!",
+            text="Activity registered!",
         )
     except Exception as e:
         blocks = error_blocks(str(e))
@@ -177,7 +202,7 @@ async def handle_app_mention(event: dict, context: BoltContext):
             channel=channel_id,
             user=user_id,
             blocks=blocks,
-            text="Erro ao registrar atividade",
+            text="Error on registering activity",
         )
         return
 

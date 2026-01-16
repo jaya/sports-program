@@ -22,8 +22,8 @@ class TestSlackBlocks:
         # Assert - Python allows "drill down" easily into the dictionary
         text_section = blocks[2]["text"]["text"]
 
-        assert "Início: 01/01/2023" in text_section
-        assert "Fim: N/A" in text_section
+        assert "Start Date: 01/01/2023" in text_section
+        assert "End Date: N/A" in text_section
 
     def test_success_block_formats_dates_correctly(self):
         """Tests whether dates are formatted correctly"""
@@ -33,8 +33,8 @@ class TestSlackBlocks:
         blocks = create_program_success_blocks("Mentoria", "C123", start, end)
 
         text_section = blocks[2]["text"]["text"]
-        assert "Início: 05/10/2023" in text_section
-        assert "Fim: 05/11/2023" in text_section
+        assert "Start Date: 05/10/2023" in text_section
+        assert "End Date: 05/11/2023" in text_section
 
     # --- Tests for create_programs_list_blocks ---
 
@@ -68,4 +68,4 @@ class TestSlackBlocks:
     def test_list_blocks_empty_returns_only_header(self):
         blocks = create_programs_list_blocks([])
         assert len(blocks) == 2  # Header and Divider
-        assert blocks[0]["text"]["text"] == "Programas"
+        assert blocks[0]["text"]["text"] == "Programs"
