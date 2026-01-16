@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+
 from app.exceptions.business import BusinessRuleViolationError
 from datetime import datetime
 

@@ -4,9 +4,9 @@ from fastapi.responses import JSONResponse
 from app.api.activity_router import router as activity_router
 from app.api.health import router as health_router
 from app.api.program_router import router as program_router
+from app.api.slack_router import router as slack_router
 from app.api.user_router import router as user_router
 from app.core.config import settings
-from app.api.slack import router as slack_router
 from app.exceptions.business import (
     BusinessException,
     BusinessRuleViolationError,
