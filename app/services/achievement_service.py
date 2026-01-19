@@ -1,4 +1,4 @@
-import logging
+import structlog
 from typing import Annotated
 
 from fastapi import Depends
@@ -13,6 +13,7 @@ from app.schemas.achievement import (
     AchievementCreate,
 )
 
+logger = structlog.get_logger()
 
 class AchievementService:
     def __init__(
@@ -42,6 +43,7 @@ class AchievementService:
     async def create_batch(
         self, achievement_batch: AchievementBatchCreate
     ) -> AchievementBatchResponse:
+        logger.info("achievement_batch_started", program_id=achievement_batch.program_id, cycle=achievement_batch.cycle_reference)
         existing_user_ids = await self.achievement_repo.find_existing_user_ids(
             program_id=achievement_batch.program_id,
             cycle_reference=achievement_batch.cycle_reference,
@@ -49,7 +51,7 @@ class AchievementService:
         )
 
         if existing_user_ids:
-            logging.warning(f"Skipped {len(existing_user_ids)} existing users")
+            logger.info("achievements_skipped", count=len(existing_user_ids))
 
         new_user_ids = [
             uid for uid in achievement_batch.user_ids if uid not in existing_user_ids
@@ -66,13 +68,16 @@ class AchievementService:
             ]
             try:
                 await self.achievement_repo.create_many(db_achievements)
+                logger.info("achievement_created", count=len(new_user_ids))
             except Exception as e:
+                logger.error("entity_creation_failed", entity="Achievement", error=str(e))
                 raise DatabaseError() from e
 
         users = []
         if new_user_ids:
             users = await self.user_repo.find_all_by_ids(new_user_ids)
 
+        logger.info("achievement_batch_completed", total=len(new_user_ids))
         return AchievementBatchResponse(
             total_created=len(new_user_ids),
             program_name=achievement_batch.program_name,

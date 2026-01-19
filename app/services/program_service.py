@@ -1,3 +1,4 @@
+import structlog
 from typing import Annotated
 
 from fastapi import Depends
@@ -12,6 +13,7 @@ from app.models.program import Program
 from app.repositories.program_repository import ProgramRepository
 from app.schemas.program_schema import ProgramCreate, ProgramResponse, ProgramUpdate
 
+logger = structlog.get_logger()
 
 class ProgramService:
     def __init__(self, program_repo: Annotated[ProgramRepository, Depends()]):
@@ -35,8 +37,10 @@ class ProgramService:
 
         try:
             created = await self.program_repo.create(db_program)
+            logger.info("program_created", program_name=created.name, program_id=created.id)
             return ProgramResponse.model_validate(created)
         except Exception as e:
+            logger.error("entity_creation_failed", entity="Program", program_name=program.name, error=str(e))
             raise DatabaseError() from e
 
     async def update(self, id: int, program_update: ProgramUpdate) -> ProgramResponse:

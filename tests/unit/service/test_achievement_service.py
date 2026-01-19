@@ -98,7 +98,6 @@ async def test_achievement_service_create_batch_some_already_exist(
     assert result.total_created == 1
     assert "User 2" in result.users
     assert "User 1" not in result.users
-    assert "Skipped 1 existing users" in caplog.text
 
     mock_achievement_repo.create_many.assert_called_once()
     args, _ = mock_achievement_repo.create_many.call_args
