@@ -1,9 +1,12 @@
+import structlog
 from typing import Generic, TypeVar
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import Base
+
+logger = structlog.get_logger()
 
 ModelType = TypeVar("ModelType", bound=Base)
 
@@ -18,8 +21,10 @@ class BaseRepository(Generic[ModelType]):
         try:
             await self.session.commit()
             await self.session.refresh(obj_in)
-        except Exception:
+            logger.debug("entity_created", entity=self.model.__name__, id=getattr(obj_in, "id", None))
+        except Exception as e:
             await self.session.rollback()
+            logger.error("entity_creation_failed", entity=self.model.__name__, error=str(e))
             raise
         return obj_in
 
@@ -38,8 +43,10 @@ class BaseRepository(Generic[ModelType]):
         try:
             await self.session.commit()
             await self.session.refresh(obj_in)
-        except Exception:
+            logger.debug("entity_updated", entity=self.model.__name__, id=getattr(obj_in, "id", None))
+        except Exception as e:
             await self.session.rollback()
+            logger.error("entity_update_failed", entity=self.model.__name__, error=str(e))
             raise
         return obj_in
 
@@ -49,7 +56,9 @@ class BaseRepository(Generic[ModelType]):
         self.session.add_all(objs)
         try:
             await self.session.commit()
+            logger.debug("entity_created", entity=self.model.__name__, count=len(objs), batch=True)
             return objs
-        except Exception:
+        except Exception as e:
             await self.session.rollback()
+            logger.error("entity_creation_failed", entity=self.model.__name__, error=str(e), batch=True)
             raise

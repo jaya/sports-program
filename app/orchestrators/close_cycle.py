@@ -1,3 +1,4 @@
+import structlog
 from typing import Annotated
 
 from fastapi import Depends
@@ -8,6 +9,7 @@ from app.services.achievement_service import AchievementService
 from app.services.activity_service import ActivityService
 from app.services.program_service import ProgramService
 
+logger = structlog.get_logger()
 
 class CloseCycle:
     def __init__(
@@ -23,8 +25,11 @@ class CloseCycle:
     async def execute(
         self, program_name: str, cycle_reference: str
     ) -> AchievementBatchResponse | None:
+        logger.info("close_cycle_started", program_name=program_name, cycle_reference=cycle_reference)
+        
         program = await self.program_service.find_by_name(program_name)
         if not program:
+            logger.warning("close_cycle_program_not_found", program_name=program_name)
             raise EntityNotFoundError("Program", program_name)
 
         user_ids = await self.activity_service.find_all_user_by_program_completed(
@@ -32,7 +37,10 @@ class CloseCycle:
         )
 
         if not user_ids:
+            logger.info("close_cycle_no_users", program_name=program_name, cycle_reference=cycle_reference)
             return None
+
+        logger.info("close_cycle_users_found", count=len(user_ids), program_name=program_name)
 
         batch = AchievementBatchCreate(
             user_ids=user_ids,
@@ -41,4 +49,6 @@ class CloseCycle:
             cycle_reference=cycle_reference,
         )
 
-        return await self.achievement_service.create_batch(batch)
+        result = await self.achievement_service.create_batch(batch)
+        logger.info("close_cycle_finished", program_name=program_name, cycle_reference=cycle_reference)
+        return result
