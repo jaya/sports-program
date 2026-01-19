@@ -15,12 +15,12 @@ AchievementServiceDep = Annotated[AchievementService, Depends()]
     response_model=NotifyResponse,
     status_code=status.HTTP_200_OK,
 )
-async def notify(
+async def notify_achievements(
     program_name: str,
     cycle_reference: str,
     service: AchievementServiceDep,
 ):
-    return await service.notify(
+    return await service.notify_achievements(
         program_name=program_name,
         cycle_reference=cycle_reference,
     )

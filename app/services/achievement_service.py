@@ -89,12 +89,14 @@ class AchievementService:
             users=[str(user.display_name) for user in users],
         )
 
-    async def notify(
+    async def notify_achievements(
         self,
         program_name: str,
         cycle_reference: str,
     ) -> NotifyResponse:
-        program = await self._get_program(program_name)
+        program = await self.program_repo.find_by_name(program_name)
+        if not program:
+            raise EntityNotFoundError("Program", program_name)
 
         pending = await self.achievement_repo.find_pending_notification(
             program_id=program.id,
@@ -116,12 +118,6 @@ class AchievementService:
             message=message,
             users=user_names,
         )
-
-    async def _get_program(self, program_name: str):
-        program = await self.program_repo.find_by_name(program_name)
-        if not program:
-            raise EntityNotFoundError("Program", program_name)
-        return program
 
     def _build_message(
         self, achievements: list[Achievement], cycle_reference: str
