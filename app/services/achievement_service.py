@@ -94,10 +94,7 @@ class AchievementService:
         program_name: str,
         cycle_reference: str,
     ) -> NotifyResponse:
-
-        program = await self.program_repo.find_by_name(program_name)
-        if not program:
-            raise EntityNotFoundError("Program", program_name)
+        program = await self._get_program(program_name)
 
         pending = await self.achievement_repo.find_pending_notification(
             program_id=program.id,
@@ -110,9 +107,28 @@ class AchievementService:
                 message="No pending achievements to notify.",
             )
 
-        slack_mentions = [f"<@{ach.user.slack_id}>" for ach in pending]
-        user_names = [ach.user.display_name for ach in pending]
-        program_name = pending[0].program.name
+        message, user_names = self._build_message(pending, cycle_reference)
+        await self._send_slack_notification(program.slack_channel, message)
+        await self.achievement_repo.mark_as_notified([ach.id for ach in pending])
+
+        return NotifyResponse(
+            total_notified=len(pending),
+            message=message,
+            users=user_names,
+        )
+
+    async def _get_program(self, program_name: str):
+        program = await self.program_repo.find_by_name(program_name)
+        if not program:
+            raise EntityNotFoundError("Program", program_name)
+        return program
+
+    def _build_message(
+        self, achievements: list[Achievement], cycle_reference: str
+    ) -> tuple[str, list[str]]:
+        slack_mentions = [f"<@{ach.user.slack_id}>" for ach in achievements]
+        user_names = [ach.user.display_name for ach in achievements]
+        program_name = achievements[0].program.name
 
         mentions = ", ".join(slack_mentions)
         message = (
@@ -120,9 +136,12 @@ class AchievementService:
             f"no ciclo {cycle_reference}!"
         )
 
+        return message, user_names
+
+    async def _send_slack_notification(self, channel: str, message: str) -> None:
         try:
             await slack_app.client.chat_postMessage(
-                channel=program.slack_channel,
+                channel=channel,
                 text=message,
             )
         except Exception as e:
@@ -131,12 +150,3 @@ class AchievementService:
                 service="Slack",
                 message="Failed to send notification"
             ) from e
-
-        achievement_ids = [ach.id for ach in pending]
-        await self.achievement_repo.mark_as_notified(achievement_ids)
-
-        return NotifyResponse(
-            total_notified=len(pending),
-            message=message,
-            users=user_names,
-        )
