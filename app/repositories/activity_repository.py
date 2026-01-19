@@ -1,3 +1,4 @@
+import structlog
 from datetime import date
 
 from sqlalchemy import func, select
@@ -8,6 +9,12 @@ from app.models.activity import Activity
 from app.models.program import Program
 from app.models.user import User
 from app.repositories.base_repository import BaseRepository
+
+# Log Events
+SEARCHING_ELIGIBLE_USERS = "searching_eligible_users"
+ELIGIBLE_USERS_FOUND = "eligible_users_found"
+
+logger = structlog.get_logger()
 
 
 class ActivityRepository(BaseRepository[Activity]):
@@ -87,6 +94,7 @@ class ActivityRepository(BaseRepository[Activity]):
     async def find_users_with_completed_program(
         self, program_id: int, year: int, month: int, goal: int
     ) -> list[int]:
+        logger.debug(SEARCHING_ELIGIBLE_USERS, program_id=program_id, year=year, month=month, goal=goal)
         stmt = (
             select(Activity.user_id)
             .where(
@@ -96,4 +104,6 @@ class ActivityRepository(BaseRepository[Activity]):
             .having(func.count(Activity.id) >= goal)
         )
         result = await self.session.execute(stmt)
-        return list(result.scalars().all())
+        user_ids = list(result.scalars().all())
+        logger.debug(ELIGIBLE_USERS_FOUND, count=len(user_ids))
+        return user_ids

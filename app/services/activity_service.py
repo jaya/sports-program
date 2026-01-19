@@ -1,3 +1,4 @@
+import structlog
 from datetime import datetime
 
 from fastapi import Depends
@@ -24,6 +25,7 @@ from app.utils.date_validator import is_within_allowed_window
 
 GOAL_ACTIVITIES = 12
 
+logger = structlog.get_logger()
 
 class ActivityService:
     def __init__(
@@ -69,7 +71,9 @@ class ActivityService:
 
         try:
             await self.activity_repo.create(db_activity)
+            logger.info("activity_created", user_id=user_id, program_id=program_found.id, activity_id=db_activity.id)
         except Exception as e:
+            logger.error("activity_creation_failed", user_id=user_id, error=str(e))
             raise DatabaseError() from e
 
         total_month = await self.activity_repo.count_monthly(
