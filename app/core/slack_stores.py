@@ -1,14 +1,15 @@
 import logging
-from datetime import datetime
+import uuid
 
 from slack_sdk.oauth.installation_store import Installation
 from slack_sdk.oauth.installation_store.async_installation_store import (
     AsyncInstallationStore,
 )
 from slack_sdk.oauth.state_store.async_state_store import AsyncOAuthStateStore
-from sqlalchemy import select
 
-from app.models.slack_installation import SlackInstallation, SlackState
+from app.repositories.slack_installation_repository import SlackInstallationRepository
+from app.repositories.slack_state_repository import SlackStateRepository
+from app.services.slack_oauth_service import SlackOAuthService
 
 logger = logging.getLogger(__name__)
 
@@ -19,48 +20,10 @@ class SQLAlchemyInstallationStore(AsyncInstallationStore):
 
     async def async_save(self, installation: Installation):
         async with self.session_factory() as session:
-            if installation.team_id:
-                stmt = select(SlackInstallation).where(
-                    SlackInstallation.team_id == installation.team_id
-                )
-            else:
-                stmt = select(SlackInstallation).where(
-                    SlackInstallation.enterprise_id == installation.enterprise_id,
-                    SlackInstallation.is_enterprise_install.is_(True),
-                )
-            result = await session.execute(stmt)
-            db_installation = result.scalar_one_or_none()
-
-            if not db_installation:
-                db_installation = SlackInstallation(
-                    team_id=installation.team_id,
-                    enterprise_id=installation.enterprise_id,
-                    is_enterprise_install=installation.is_enterprise_install,
-                )
-                session.add(db_installation)
-
-            db_installation.bot_token = installation.bot_token
-            db_installation.bot_id = installation.bot_id
-            db_installation.bot_user_id = installation.bot_user_id
-            db_installation.installer_user_id = installation.user_id
-            db_installation.scope = (
-                ",".join(installation.bot_scopes) if installation.bot_scopes else None
-            )
-
-            await session.commit()
-
-    def _row_to_installation(self, row: SlackInstallation) -> Installation:
-        return Installation(
-            app_id=None,
-            enterprise_id=row.enterprise_id,
-            team_id=row.team_id,
-            bot_token=row.bot_token,
-            bot_id=row.bot_id,
-            bot_user_id=row.bot_user_id,
-            bot_scopes=(row.scope.split(",") if row.scope else []),
-            user_id=row.installer_user_id,
-            is_enterprise_install=row.is_enterprise_install,
-        )
+            repo = SlackInstallationRepository(session)
+            state_repo = SlackStateRepository(session)
+            service = SlackOAuthService(repo, state_repo)
+            await service.save_installation(installation)
 
     async def async_find_bot(
         self,
@@ -70,27 +33,25 @@ class SQLAlchemyInstallationStore(AsyncInstallationStore):
         is_enterprise_install: bool | None = False,
     ) -> Installation | None:
         async with self.session_factory() as session:
-            # 1. Search by team_id if provided
-            if team_id:
-                stmt = select(SlackInstallation).where(
-                    SlackInstallation.team_id == team_id
-                )
-                result = await session.execute(stmt)
-                db_installation = result.scalar_one_or_none()
-                if db_installation:
-                    return self._row_to_installation(db_installation)
+            repo = SlackInstallationRepository(session)
+            state_repo = SlackStateRepository(session)
+            service = SlackOAuthService(repo, state_repo)
+            db_install = await service.find_installation(enterprise_id, team_id)
 
-            # 2. Search by enterprise_id (Org-wide install) if team search fails or team_id falls null
-            if enterprise_id:
-                stmt = select(SlackInstallation).where(
-                    SlackInstallation.enterprise_id == enterprise_id,
-                    SlackInstallation.is_enterprise_install.is_(True),
+            if db_install:
+                return Installation(
+                    app_id=None,
+                    enterprise_id=db_install.enterprise_id,
+                    team_id=db_install.team_id,
+                    bot_token=db_install.bot_token,
+                    bot_id=db_install.bot_id,
+                    bot_user_id=db_install.bot_user_id,
+                    bot_scopes=(
+                        db_install.scope.split(",") if db_install.scope else []
+                    ),
+                    user_id=db_install.installer_user_id,
+                    is_enterprise_install=db_install.is_enterprise_install,
                 )
-                result = await session.execute(stmt)
-                db_installation = result.scalar_one_or_none()
-                if db_installation:
-                    return self._row_to_installation(db_installation)
-
         return None
 
 
@@ -100,33 +61,16 @@ class SQLAlchemyStateStore(AsyncOAuthStateStore):
         self.expiration_seconds = expiration_seconds
 
     async def async_issue(self, *args, **kwargs) -> str:
-        import uuid
-
         state = str(uuid.uuid4())
-        expire_at = datetime.fromtimestamp(
-            datetime.now().timestamp() + self.expiration_seconds
-        )
-
         async with self.session_factory() as session:
-            db_state = SlackState(state=state, expire_at=expire_at)
-            session.add(db_state)
-            await session.commit()
-
-        return state
+            repo = SlackInstallationRepository(session)
+            state_repo = SlackStateRepository(session)
+            service = SlackOAuthService(repo, state_repo)
+            return await service.issue_state(state, self.expiration_seconds)
 
     async def async_consume(self, state: str) -> bool:
         async with self.session_factory() as session:
-            stmt = select(SlackState).where(SlackState.state == state)
-            result = await session.execute(stmt)
-            db_state = result.scalar_one_or_none()
-
-            if db_state:
-                if db_state.expire_at > datetime.now():
-                    await session.delete(db_state)
-                    await session.commit()
-                    return True
-                else:
-                    await session.delete(db_state)
-                    await session.commit()
-
-        return False
+            repo = SlackInstallationRepository(session)
+            state_repo = SlackStateRepository(session)
+            service = SlackOAuthService(repo, state_repo)
+            return await service.consume_state(state)

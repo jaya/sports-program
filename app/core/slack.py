@@ -10,7 +10,9 @@ oauth_settings = AsyncOAuthSettings(
     client_secret=settings.SLACK_CLIENT_SECRET,
     scopes=settings.SLACK_SCOPES.split(","),
     installation_store=SQLAlchemyInstallationStore(async_session),
-    state_store=SQLAlchemyStateStore(async_session, expiration_seconds=600),
+    state_store=SQLAlchemyStateStore(
+        async_session, expiration_seconds=settings.SLACK_STATE_EXPIRATION_SECONDS
+    ),
     install_path=settings.SLACK_INSTALL_PATH,
     redirect_uri_path=settings.SLACK_REDIRECT_URI_PATH,
 )
