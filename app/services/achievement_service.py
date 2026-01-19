@@ -3,10 +3,8 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from app.core.config import settings
 from app.core.slack import slack_app
 from app.exceptions.business import (
-    BusinessRuleViolationError,
     DatabaseError,
     EntityNotFoundError,
     ExternalServiceError,
@@ -96,11 +94,6 @@ class AchievementService:
         program_name: str,
         cycle_reference: str,
     ) -> NotifyResponse:
-        notification_channel = settings.SLACK_NOTIFICATION_CHANNEL
-        if not notification_channel:
-            raise BusinessRuleViolationError(
-                "SLACK_NOTIFICATION_CHANNEL not configured in .env"
-            )
 
         program = await self.program_repo.find_by_name(program_name)
         if not program:
@@ -129,7 +122,7 @@ class AchievementService:
 
         try:
             await slack_app.client.chat_postMessage(
-                channel=notification_channel,
+                channel=program.slack_channel,
                 text=message,
             )
         except Exception as e:

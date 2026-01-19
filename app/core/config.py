@@ -9,7 +9,6 @@ class BasicConfig(BaseSettings):
 
     SLACK_BOT_TOKEN: str = ""
     SLACK_SIGNING_SECRET: str = ""
-    SLACK_NOTIFICATION_CHANNEL: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -34,8 +33,7 @@ class ProdConfig(GlobalConfig):
     @field_validator(
         "DATABASE_URL",
         "SLACK_BOT_TOKEN",
-        "SLACK_SIGNING_SECRET",
-        "SLACK_NOTIFICATION_CHANNEL",
+        "SLACK_SIGNING_SECRET"
     )
     @classmethod
     def check_must_be_set(cls, v: str | None) -> str:
