@@ -1,6 +1,7 @@
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 
+from app.api.achievement_router import router as achievement_router
 from app.api.activity_router import router as activity_router
 from app.api.health import router as health_router
 from app.api.program_router import router as program_router
@@ -13,6 +14,7 @@ from app.exceptions.business import (
     DatabaseError,
     DuplicateEntityError,
     EntityNotFoundError,
+    ExternalServiceError,
 )
 
 
@@ -43,6 +45,13 @@ def setup_exception_handlers(app: FastAPI):
             content={"detail": exc.message},
         )
 
+    @app.exception_handler(ExternalServiceError)
+    async def external_service_handler(request, exc):
+        return JSONResponse(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            content={"detail": exc.message},
+        )
+
     @app.exception_handler(BusinessException)
     async def general_business_handler(request, exc):
         return JSONResponse(
@@ -59,6 +68,7 @@ app.include_router(health_router)
 app.include_router(user_router)
 app.include_router(activity_router)
 app.include_router(program_router)
+app.include_router(achievement_router)
 app.include_router(slack_router)
 setup_exception_handlers(app)
 
