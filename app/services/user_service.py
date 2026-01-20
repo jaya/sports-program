@@ -1,8 +1,10 @@
 from fastapi import Depends
-from app.exceptions.business import DatabaseError, DuplicateEntityError
+
+from app.core.slack import slack_app
+from app.exceptions.business import DatabaseError, DuplicateEntityError, ExternalServiceError
 from app.models.user import User
-from app.schemas.user_schema import UserCreate
 from app.repositories.user_repository import UserRepository
+from app.schemas.user_schema import UserCreate
 
 
 class UserService:
@@ -11,6 +13,31 @@ class UserService:
         user_repo: UserRepository = Depends(),
     ):
         self.user_repo = user_repo
+
+    async def get_slack_display_name(self, slack_id: str) -> str:
+        response = await slack_app.client.users_info(user=slack_id)
+
+        if not response["ok"]:
+            error = response.get("error", "unknown_error")
+            raise ExternalServiceError(
+                service="Slack",
+                message=f"Failed to fetch user: {error}"
+            )
+
+        user_info = response["user"]
+        display_name = (
+            user_info.get("profile", {}).get("display_name")
+            or user_info.get("real_name")
+            or user_info.get("name")
+        )
+
+        if not display_name:
+            raise ExternalServiceError(
+                service="Slack",
+                message=f"User {slack_id} has no display name"
+            )
+
+        return display_name
 
     async def create(self, user: UserCreate):
         user_found = await self.user_repo.find_by_slack_id(user.slack_id)
