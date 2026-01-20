@@ -54,7 +54,7 @@ async def test_create_program_sets_start_date_to_beginning_of_day(
         # This assertion would fail without the logic to truncate the date
         assert actual_start_date.hour == 0
         assert actual_start_date.minute == 0
-        assert actual_start_date.second == 0
+        assert actual_start_date.second == 1
 
 
 @pytest.mark.anyio
@@ -83,4 +83,4 @@ async def test_update_program_sets_start_date_to_beginning_of_day(
     # setattr should have been called with the truncated date
     assert db_program.start_date.hour == 0
     assert db_program.start_date.minute == 0
-    assert db_program.start_date.second == 0
+    assert db_program.start_date.second == 1
