@@ -1,8 +1,9 @@
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy import select , exists as sql_exists
+from sqlalchemy import select, update, exists as sql_exists
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.core.database import get_db
 from app.models.achievement import Achievement
@@ -26,6 +27,37 @@ class AchievementRepository(BaseRepository[Achievement]):
         )
         result = await self.session.execute(stmt)
         return set(result.scalars().all())
+
+    async def find_pending_notification(
+        self, program_id: int, cycle_reference: str
+    ) -> list[Achievement]:
+        stmt = (
+            select(Achievement)
+            .options(
+                joinedload(Achievement.user),
+                joinedload(Achievement.program)
+            )
+            .where(
+                Achievement.program_id == program_id,
+                Achievement.cycle_reference == cycle_reference,
+                Achievement.is_notified.is_(False),
+            )
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().unique().all()
+
+    async def mark_as_notified(self, achievement_ids: list[int]) -> int:
+        if not achievement_ids:
+            return 0
+
+        stmt = (
+            update(Achievement)
+            .where(Achievement.id.in_(achievement_ids))
+            .values(is_notified=True)
+        )
+        result = await self.session.execute(stmt)
+        await self.session.commit()
+        return result.rowcount
     
     async def exists(
         self, 
