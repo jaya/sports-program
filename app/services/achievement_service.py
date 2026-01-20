@@ -39,7 +39,7 @@ class AchievementService:
         program_id: int,
         user_id: int,
     ) -> AchievementCreateResponse | None: 
-        already_exists = await self.achievement_repo.exists(
+        already_exists = await self.achievement_repo.user_has_achievement(
             user_id=user_id,
             program_id=program_id,
             cycle_reference=achievement_create.cycle_reference

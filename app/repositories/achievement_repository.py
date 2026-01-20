@@ -59,7 +59,7 @@ class AchievementRepository(BaseRepository[Achievement]):
         await self.session.commit()
         return result.rowcount
     
-    async def exists(
+    async def user_has_achievement(
         self, 
         user_id: int, 
         program_id: int, 

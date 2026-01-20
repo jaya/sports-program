@@ -27,6 +27,3 @@ class ReferenceDate:
             raise BusinessRuleViolationError(
                 "The date format must be YYYY-MM."
             )
-    
-def is_previous_month(activity_date: datetime, current_date: datetime) -> bool:
-    return (activity_date.year * 12 + activity_date.month) == (current_date.year * 12 + current_date.month - 1)

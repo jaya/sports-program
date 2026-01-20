@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,7 +24,6 @@ from app.services.user_service import UserService
 from app.services.utils.reference_date import ReferenceDate
 from app.utils.date_validator import is_within_allowed_window
 from app.services.achievement_service import AchievementService
-from app.services.utils.reference_date import is_previous_month
 
 GOAL_ACTIVITIES = 12
 
@@ -83,7 +83,7 @@ class ActivityService:
             month=db_activity.performed_at.month,
         )
 
-        if is_previous_month(performed_at, datetime.now()) and (total_month >= GOAL_ACTIVITIES):
+        if self._is_previous_month(performed_at, datetime.now()) and (total_month >= GOAL_ACTIVITIES):
             await self._generate_retroactive_achievement(
                 user_id,
                 program_found.id,
@@ -280,5 +280,11 @@ class ActivityService:
                 user_id=user_id,
                 program_id=program_id,
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(
+                f"Failed to create retroactive achievement for user {user_id} "
+                f"for program {program.name} and cycle {cycle_reference}: {e}"
+            )
+
+    def _is_previous_month(self, activity_date: datetime, current_date: datetime) -> bool:
+        return (activity_date.year * 12 + activity_date.month) == (current_date.year * 12 + current_date.month - 1)
