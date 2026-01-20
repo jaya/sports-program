@@ -9,22 +9,14 @@ def setup_logging():
     shared_processors = [
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
-        structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.CallsiteParameterAdder(
-            {
-                structlog.processors.CallsiteParameter.FILENAME,
-                structlog.processors.CallsiteParameter.FUNC_NAME,
-                structlog.processors.CallsiteParameter.LINENO,
-            }
-        ),
+        structlog.processors.TimeStamper(fmt="iso")
     ]
 
-    renderer, log_level = get_renderer_and_level()
+    processors, renderer, log_level = get_environment_logging_config(shared_processors)
 
     structlog.configure(
-        processors=shared_processors + [
+        processors=processors + [
             structlog.stdlib.filter_by_level,
             structlog.stdlib.add_logger_name,
             structlog.stdlib.PositionalArgumentsFormatter(),
@@ -36,14 +28,26 @@ def setup_logging():
     )
 
 
-    configure_std_logging_and_uvicorn(shared_processors, renderer, log_level)
+    configure_std_logging_and_uvicorn(processors, renderer, log_level)
 
-def get_renderer_and_level():
+def get_environment_logging_config(processors: list):
     if settings.DEBUG:
-        return structlog.dev.ConsoleRenderer(), logging.DEBUG
+        processors.extend(
+            [
+                structlog.processors.StackInfoRenderer(),
+                structlog.processors.CallsiteParameterAdder(
+                    {
+                        structlog.processors.CallsiteParameter.FILENAME,
+                        structlog.processors.CallsiteParameter.FUNC_NAME,
+                        structlog.processors.CallsiteParameter.LINENO,
+                    }
+                ),
+            ]
+        )
+        return processors, structlog.dev.ConsoleRenderer(), logging.DEBUG
 
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
-    return structlog.processors.JSONRenderer(), logging.INFO
+    return processors, structlog.processors.JSONRenderer(), logging.INFO
 
 
 def configure_std_logging_and_uvicorn(
