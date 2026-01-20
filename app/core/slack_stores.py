@@ -17,7 +17,13 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def slack_oauth_context(session_factory):
-    """Context manager to provide a SlackOAuthService with a fresh session."""
+    """
+    Asynchronous context manager to initialize the Slack OAuth architecture.
+
+    It centralizes the creation of repositories and the service within a single
+    database session, ensuring consistent transactional behavior and reducing
+    code duplication across various store methods.
+    """
     async with session_factory() as session:
         repo = SlackInstallationRepository(session)
         state_repo = SlackStateRepository(session)
