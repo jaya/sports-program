@@ -35,8 +35,17 @@ class SQLAlchemyInstallationStore(AsyncInstallationStore):
         self.session_factory = session_factory
 
     async def async_save(self, installation: Installation):
-        async with slack_oauth_context(self.session_factory) as service:
-            await service.save_installation(installation)
+        try:
+            async with slack_oauth_context(self.session_factory) as service:
+                await service.save_installation(installation)
+        except Exception as e:
+            logger.error(
+                "Failed to save Slack installation for team %s: %s",
+                installation.team_id,
+                str(e),
+                exc_info=True,
+            )
+            raise
 
     async def async_find_bot(
         self,
@@ -45,8 +54,18 @@ class SQLAlchemyInstallationStore(AsyncInstallationStore):
         team_id: str | None,
         is_enterprise_install: bool | None = False,
     ) -> Installation | None:
-        async with slack_oauth_context(self.session_factory) as service:
-            return await service.get_bot(enterprise_id, team_id)
+        try:
+            async with slack_oauth_context(self.session_factory) as service:
+                return await service.get_bot(enterprise_id, team_id)
+        except Exception as e:
+            logger.error(
+                "Failed to find Slack bot for team %s/enterprise %s: %s",
+                team_id,
+                enterprise_id,
+                str(e),
+                exc_info=True,
+            )
+            return None
 
 
 class SQLAlchemyStateStore(AsyncOAuthStateStore):
@@ -56,9 +75,22 @@ class SQLAlchemyStateStore(AsyncOAuthStateStore):
 
     async def async_issue(self, *args, **kwargs) -> str:
         state = str(uuid.uuid4())
-        async with slack_oauth_context(self.session_factory) as service:
-            return await service.issue_state(state, self.expiration_seconds)
+        try:
+            async with slack_oauth_context(self.session_factory) as service:
+                return await service.issue_state(state, self.expiration_seconds)
+        except Exception as e:
+            logger.error("Failed to issue Slack OAuth state: %s", str(e), exc_info=True)
+            raise
 
     async def async_consume(self, state: str) -> bool:
-        async with slack_oauth_context(self.session_factory) as service:
-            return await service.consume_state(state)
+        try:
+            async with slack_oauth_context(self.session_factory) as service:
+                return await service.consume_state(state)
+        except Exception as e:
+            logger.error(
+                "Failed to consume Slack OAuth state %s: %s",
+                state,
+                str(e),
+                exc_info=True,
+            )
+            return False
