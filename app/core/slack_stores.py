@@ -1,5 +1,6 @@
 import logging
 import uuid
+from contextlib import asynccontextmanager
 
 from slack_sdk.oauth.installation_store import Installation
 from slack_sdk.oauth.installation_store.async_installation_store import (
@@ -14,15 +15,21 @@ from app.services.slack_oauth_service import SlackOAuthService
 logger = logging.getLogger(__name__)
 
 
+@asynccontextmanager
+async def slack_oauth_context(session_factory):
+    """Context manager to provide a SlackOAuthService with a fresh session."""
+    async with session_factory() as session:
+        repo = SlackInstallationRepository(session)
+        state_repo = SlackStateRepository(session)
+        yield SlackOAuthService(repo, state_repo)
+
+
 class SQLAlchemyInstallationStore(AsyncInstallationStore):
     def __init__(self, session_factory):
         self.session_factory = session_factory
 
     async def async_save(self, installation: Installation):
-        async with self.session_factory() as session:
-            repo = SlackInstallationRepository(session)
-            state_repo = SlackStateRepository(session)
-            service = SlackOAuthService(repo, state_repo)
+        async with slack_oauth_context(self.session_factory) as service:
             await service.save_installation(installation)
 
     async def async_find_bot(
@@ -32,27 +39,8 @@ class SQLAlchemyInstallationStore(AsyncInstallationStore):
         team_id: str | None,
         is_enterprise_install: bool | None = False,
     ) -> Installation | None:
-        async with self.session_factory() as session:
-            repo = SlackInstallationRepository(session)
-            state_repo = SlackStateRepository(session)
-            service = SlackOAuthService(repo, state_repo)
-            db_install = await service.find_installation(enterprise_id, team_id)
-
-            if db_install:
-                return Installation(
-                    app_id=None,
-                    enterprise_id=db_install.enterprise_id,
-                    team_id=db_install.team_id,
-                    bot_token=db_install.bot_token,
-                    bot_id=db_install.bot_id,
-                    bot_user_id=db_install.bot_user_id,
-                    bot_scopes=(
-                        db_install.scope.split(",") if db_install.scope else []
-                    ),
-                    user_id=db_install.installer_user_id,
-                    is_enterprise_install=db_install.is_enterprise_install,
-                )
-        return None
+        async with slack_oauth_context(self.session_factory) as service:
+            return await service.get_bot(enterprise_id, team_id)
 
 
 class SQLAlchemyStateStore(AsyncOAuthStateStore):
@@ -62,15 +50,9 @@ class SQLAlchemyStateStore(AsyncOAuthStateStore):
 
     async def async_issue(self, *args, **kwargs) -> str:
         state = str(uuid.uuid4())
-        async with self.session_factory() as session:
-            repo = SlackInstallationRepository(session)
-            state_repo = SlackStateRepository(session)
-            service = SlackOAuthService(repo, state_repo)
+        async with slack_oauth_context(self.session_factory) as service:
             return await service.issue_state(state, self.expiration_seconds)
 
     async def async_consume(self, state: str) -> bool:
-        async with self.session_factory() as session:
-            repo = SlackInstallationRepository(session)
-            state_repo = SlackStateRepository(session)
-            service = SlackOAuthService(repo, state_repo)
+        async with slack_oauth_context(self.session_factory) as service:
             return await service.consume_state(state)

@@ -46,6 +46,25 @@ class SlackOAuthService:
             team_id, enterprise_id
         )
 
+    async def get_bot(
+        self, enterprise_id: str | None, team_id: str | None
+    ) -> Installation | None:
+        db_install = await self.find_installation(enterprise_id, team_id)
+        if not db_install:
+            return None
+
+        return Installation(
+            app_id=None,
+            enterprise_id=db_install.enterprise_id,
+            team_id=db_install.team_id,
+            bot_token=db_install.bot_token,
+            bot_id=db_install.bot_id,
+            bot_user_id=db_install.bot_user_id,
+            bot_scopes=(db_install.scope.split(",") if db_install.scope else []),
+            user_id=db_install.installer_user_id,
+            is_enterprise_install=db_install.is_enterprise_install,
+        )
+
     async def issue_state(self, state: str, expiration_seconds: int) -> str:
         expire_at = datetime.fromtimestamp(
             datetime.now().timestamp() + expiration_seconds

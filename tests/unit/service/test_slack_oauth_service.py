@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 import pytest
 from slack_sdk.oauth.installation_store import Installation
 
-from app.models.slack_installation import SlackState
+from app.models.slack_installation import SlackInstallation, SlackState
 from app.repositories.slack_installation_repository import SlackInstallationRepository
 from app.repositories.slack_state_repository import SlackStateRepository
 from app.services.slack_oauth_service import SlackOAuthService
@@ -88,3 +88,30 @@ async def test_consume_state_expired(slack_oauth_service, mock_state_repo):
 
     assert result is False
     mock_state_repo.delete_by_state.assert_called_once_with(state)
+
+
+@pytest.mark.anyio
+async def test_get_bot_success(slack_oauth_service, mock_installation_repo):
+    db_install = SlackInstallation(
+        team_id="T123",
+        bot_token="xoxb-123",
+        scope="commands,chat:write",
+        installer_user_id="U456",
+    )
+    mock_installation_repo.get_by_team_or_enterprise.return_value = db_install
+
+    result = await slack_oauth_service.get_bot(None, "T123")
+
+    assert isinstance(result, Installation)
+    assert result.team_id == "T123"
+    assert result.bot_token == "xoxb-123"
+    assert result.bot_scopes == ["commands", "chat:write"]
+
+
+@pytest.mark.anyio
+async def test_get_bot_not_found(slack_oauth_service, mock_installation_repo):
+    mock_installation_repo.get_by_team_or_enterprise.return_value = None
+
+    result = await slack_oauth_service.get_bot(None, "T999")
+
+    assert result is None
