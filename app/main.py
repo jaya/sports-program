@@ -10,7 +10,8 @@ from app.api.program_router import router as program_router
 from app.api.slack_router import router as slack_router
 from app.api.user_router import router as user_router
 from app.core.config import settings
-from app.core.logging import setup_logging
+from app.core.logging.middleware import logging_middleware
+from app.core.logging.setup import setup_logging
 from app.exceptions.business import (
     BusinessException,
     BusinessRuleViolationError,
@@ -62,7 +63,7 @@ def setup_exception_handlers(app: FastAPI):
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):
-        logger.exception("unhandled_exception", error=str(exc))
+        logger.exception("unhandled_exception")
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "An unexpected error occurred."},
@@ -75,49 +76,7 @@ app = FastAPI(
 )
 
 app.add_middleware(CorrelationIdMiddleware)
-
-@app.middleware("http")
-async def logging_middleware(request: Request, call_next):
-    structlog.contextvars.clear_contextvars()
-    
-    # Adicionar correlation_id ao contexto se disponível (do middleware anterior)
-    request_id = request.headers.get("X-Request-ID")
-    if request_id:
-        structlog.contextvars.bind_contextvars(request_id=request_id)
-
-    start_time = time.perf_counter()
-    
-    logger.info(
-        "request_started",
-        method=request.method,
-        path=request.url.path,
-        query_params=str(request.query_params),
-        client_ip=request.client.host if request.client else None,
-    )
-
-    try:
-        response = await call_next(request)
-    except Exception as e:
-        process_time = time.perf_counter() - start_time
-        logger.error(
-            "request_failed",
-            method=request.method,
-            path=request.url.path,
-            error=str(e),
-            duration=f"{process_time:.4f}s",
-        )
-        raise e
-
-    process_time = time.perf_counter() - start_time
-    logger.info(
-        "request_finished",
-        method=request.method,
-        path=request.url.path,
-        status_code=response.status_code,
-        duration=f"{process_time:.4f}s",
-    )
-    
-    return response
+app.middleware("http")(logging_middleware)
 
 
 app.include_router(health_router)
