@@ -1,5 +1,5 @@
 <!--
-Thanks for buting! Please fill out the template clearly. Items marked with * are required.
+Thanks for contributing! Please fill out the template clearly. Items marked with * are required.
 
 Recommended best practices:
 - Use a clear, objective title (e.g., feat: add activities endpoint) — prefer Conventional Commits.
