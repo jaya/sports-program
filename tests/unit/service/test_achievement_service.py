@@ -158,24 +158,37 @@ async def test_notify_achievements_program_not_found(service, mock_program_repo)
     mock_program_repo.find_by_name.return_value = None
 
     with pytest.raises(EntityNotFoundError):
-        await service.notify_achievements(program_name="Unknown", cycle_reference="2023-10")
+        await service.notify_achievements(
+            program_name="Unknown",
+            cycle_reference="2023-10"
+        )
 
 
 @pytest.mark.anyio
 async def test_notify_achievements_no_pending(
     service, mock_program_repo, mock_achievement_repo
 ):
-    mock_program_repo.find_by_name.return_value = Program(id=1, name="Test")
+    mock_program_repo.find_by_name.return_value = Program(
+        id=1,
+        name="Test"
+    )
     mock_achievement_repo.find_pending_notification.return_value = []
 
-    result = await service.notify_achievements(program_name="Test", cycle_reference="2023-10")
+    result = await service.notify_achievements(
+        program_name="Test",
+        cycle_reference="2023-10"
+    )
 
     assert result.total_notified == 0
     assert "No pending" in result.message
 
 
 @pytest.mark.anyio
-async def test_notify_achievements_success(service, mock_program_repo, mock_achievement_repo):
+async def test_notify_achievements_success(
+        service,
+        mock_program_repo,
+        mock_achievement_repo
+):
     with patch("app.services.achievement_service.slack_app") as mock_slack:
         program = Program(id=1, name="Challenge", slack_channel="C123")
         user1 = User(id=1, slack_id="U111", display_name="John")
@@ -212,7 +225,11 @@ async def test_notify_achievements_success(service, mock_program_repo, mock_achi
 
 
 @pytest.mark.anyio
-async def test_notify_achievements_slack_error(service, mock_program_repo, mock_achievement_repo):
+async def test_notify_achievements_slack_error(
+        service,
+        mock_program_repo,
+        mock_achievement_repo
+):
     with patch("app.services.achievement_service.slack_app") as mock_slack:
         program = Program(id=1, name="Challenge", slack_channel="C123")
         user = User(id=1, slack_id="U111", display_name="John")
