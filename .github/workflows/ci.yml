@@ -30,7 +30,6 @@ jobs:
       - name: Run linting
         run: |
           poetry run ruff check .
-#          poetry run ruff format --check . -- TODO to be uncommented after team ready to work ruff rules
 
       - name: Build Docker image (validação)
         run: docker build -t sports-program .
