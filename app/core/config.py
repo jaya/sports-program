@@ -9,7 +9,13 @@ class BasicConfig(BaseSettings):
 
     SLACK_BOT_TOKEN: str = ""
     SLACK_SIGNING_SECRET: str = ""
-
+    SLACK_CLIENT_ID: str = ""
+    SLACK_CLIENT_SECRET: str = ""
+    SLACK_SCOPES: str = "commands,chat:write"
+    SLACK_INSTALL_PATH: str = "/slack/install"
+    SLACK_REDIRECT_URI_PATH: str = "/slack/oauth_redirect"
+    SLACK_STATE_EXPIRATION_SECONDS: int = 600
+    DEBUG: bool = True
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
@@ -32,8 +38,9 @@ class ProdConfig(GlobalConfig):
 
     @field_validator(
         "DATABASE_URL",
-        "SLACK_BOT_TOKEN",
-        "SLACK_SIGNING_SECRET"
+        "SLACK_SIGNING_SECRET",
+        "SLACK_CLIENT_ID",
+        "SLACK_CLIENT_SECRET",
     )
     @classmethod
     def check_must_be_set(cls, v: str | None) -> str:
