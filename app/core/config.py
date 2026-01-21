@@ -30,11 +30,7 @@ class TestConfig(GlobalConfig):
 class ProdConfig(GlobalConfig):
     DEBUG: bool = False
 
-    @field_validator(
-        "DATABASE_URL",
-        "SLACK_BOT_TOKEN",
-        "SLACK_SIGNING_SECRET"
-    )
+    @field_validator("DATABASE_URL", "SLACK_BOT_TOKEN", "SLACK_SIGNING_SECRET")
     @classmethod
     def check_must_be_set(cls, v: str | None) -> str:
         if not v:
