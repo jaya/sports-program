@@ -20,20 +20,36 @@ async def get_programs(service: ProgramServiceDep):
 
 
 @router.get("/programs/{slack_channel}/{name}", response_model=ProgramResponse)
-async def get_program_by_slack_channel_and_name(name: str, slack_channel: str, service: ProgramServiceDep):
+async def get_program_by_slack_channel_and_name(
+        name: str,
+        slack_channel: str,
+        service: ProgramServiceDep
+):
     program = await service.find_by_name_and_slack_channel(name, slack_channel)
     if not program:
         raise EntityNotFoundError("Program", name)
     return program
 
 
-@router.post("/programs", response_model=ProgramResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/programs",
+    response_model=ProgramResponse,
+    status_code=status.HTTP_201_CREATED
+)
 async def create_program(program: ProgramCreate, service: ProgramServiceDep):
     return await service.create(program)
 
 
-@router.patch("/programs/{program_id}", response_model=ProgramResponse, status_code=status.HTTP_200_OK)
-async def update_program(program_id: int, program: ProgramUpdate, service: ProgramServiceDep):
+@router.patch(
+    "/programs/{program_id}",
+    response_model=ProgramResponse,
+    status_code=status.HTTP_200_OK
+)
+async def update_program(
+        program_id: int,
+        program: ProgramUpdate,
+        service: ProgramServiceDep
+):
     return await service.update(program_id, program)
 
 

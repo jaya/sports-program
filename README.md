@@ -93,7 +93,7 @@ credentials to allow the bot to communicate with the workspace.
       **OAuth & Permissions**.
     - Reinstall the app to your workspace if you add new scopes.
 
-## 🤝 Contributing
+## 🤝 buting
 
 This project encourages:
 

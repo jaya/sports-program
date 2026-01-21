@@ -25,4 +25,4 @@ class ReferenceDate:
         except (ValueError, AttributeError):
             raise BusinessRuleViolationError(
                 "The date format must be YYYY-MM."
-            )
+            ) from None

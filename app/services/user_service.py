@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import Depends
 
 from app.exceptions.business import DatabaseError, DuplicateEntityError
@@ -9,7 +11,7 @@ from app.schemas.user_schema import UserCreate
 class UserService:
     def __init__(
         self,
-        user_repo: UserRepository = Depends(),
+        user_repo: Annotated[UserRepository, Depends()],
     ):
         self.user_repo = user_repo
 

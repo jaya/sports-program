@@ -13,9 +13,12 @@ config = context.config
 
 # Set the sqlalchemy.url from settings
 db_url = settings.DATABASE_URL
-db_url = db_url.replace("+aiosqlite", "")  # SQLite async -> sync
-db_url = db_url.replace("+asyncpg", "+psycopg2")  # PostgreSQL async -> sync
-db_url = db_url.replace("?ssl=require", "?sslmode=require")  # asyncpg usa ssl, psycopg2 usa sslmode
+# SQLite async -> sync
+db_url = db_url.replace("+aiosqlite", "")
+# PostgreSQL async -> sync
+db_url = db_url.replace("+asyncpg", "+psycopg2")
+# asyncpg usa ssl, psycopg2 usa sslmode
+db_url = db_url.replace("?ssl=require", "?sslmode=require")
 config.set_main_option("sqlalchemy.url", db_url)
 
 

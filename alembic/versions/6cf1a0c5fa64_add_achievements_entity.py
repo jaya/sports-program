@@ -27,13 +27,25 @@ def upgrade() -> None:
     sa.Column('program_id', sa.Integer(), nullable=False),
     sa.Column('cycle_reference', sa.String(), nullable=False),
     sa.Column('is_notified', sa.Boolean(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
-    sa.ForeignKeyConstraint(['program_id'], ['programs.id'], ),
+    sa.Column(
+        'created_at',
+        sa.DateTime(timezone=True),
+        server_default=sa.text('(CURRENT_TIMESTAMP)'),
+        nullable=False
+    ),
+    sa.ForeignKeyConstraint(['program_id'], ['programs.id']),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_achievements_id'), 'achievements', ['id'], unique=False)
-    op.create_index('ix_achievements_user_program_cycle', 'achievements', ['user_id', 'program_id', 'cycle_reference'], unique=True)
+    op.create_index(
+        'ix_achievements_user_program_cycle',
+        'achievements',
+        ['user_id',
+         'program_id',
+         'cycle_reference'],
+        unique=True
+    )
     # ### end Alembic commands ###
 
 

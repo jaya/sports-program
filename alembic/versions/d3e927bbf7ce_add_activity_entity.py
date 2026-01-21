@@ -28,7 +28,12 @@ def upgrade() -> None:
     sa.Column('description', sa.String(), nullable=False),
     sa.Column('evidence_url', sa.String(), nullable=True),
     sa.Column('performed_at', sa.DateTime(timezone=True), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.Column(
+        'created_at',
+        sa.DateTime(timezone=True),
+        server_default=sa.text('(CURRENT_TIMESTAMP)'),
+        nullable=False
+    ),
     sa.ForeignKeyConstraint(['program_id'], ['programs.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
