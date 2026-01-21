@@ -1,6 +1,7 @@
 from datetime import datetime
 from unittest.mock import Mock
 
+from app.core.config import settings
 from app.interfaces.slack.slack_views import (
     activities_list_blocks,
     activity_registered_blocks,
@@ -212,7 +213,7 @@ class TestSlackBlocks:
         blocks = help_blocks()
 
         # Check for introduction
-        assert find_block_text_containing(blocks, "Sports Program Bot") is not None
+        assert find_block_text_containing(blocks, f"{settings.BOT_NAME}") is not None
 
         # Check for sections
         assert find_block_text_containing(blocks, "Prerequisites") is not None
