@@ -59,7 +59,7 @@ class ProgramService:
 
         if "start_date" in update_data and update_data["start_date"] is not None:
             update_data["start_date"] = update_data["start_date"].replace(
-                hour=0, minute=0, second=0, microsecond=0
+                hour=0, minute=0, second=1, microsecond=0
             )
 
         start_date = update_data.get("start_date", db_program.start_date)

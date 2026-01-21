@@ -263,6 +263,7 @@ async def test_create_activity_auto_create_user(
         mock_user_service, mock_program_service, activity_service, today
     )
     mock_user_service.find_by_slack_id.return_value = None
+    mock_user_service.get_slack_display_name.return_value = "New User"
     mock_user_service.create.return_value = User(id=99, slack_id="U_NEW")
 
     await activity_service.create(
