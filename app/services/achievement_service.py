@@ -1,5 +1,5 @@
 import logging
-from typing import Annotated
+from typing import Annotated, TYPE_CHECKING
 
 from fastapi import Depends
 
@@ -20,6 +20,10 @@ from app.schemas.achievement import (
     NotifyResponse,
     AchievementCreateResponse,
 )
+
+if TYPE_CHECKING:
+    from app.services.activity_service import ActivityService
+
 from app.services.activity_service import ActivityService
 
 
@@ -58,7 +62,7 @@ class AchievementService:
         achievement_repo: Annotated[AchievementRepository, Depends()],
         user_repo: Annotated[UserRepository, Depends()],
         program_repo: Annotated[ProgramRepository, Depends()],
-        activity_service: Annotated[ActivityService, Depends()],
+        activity_service: Annotated["ActivityService", Depends()],
     ):
         self.achievement_repo = achievement_repo
         self.user_repo = user_repo

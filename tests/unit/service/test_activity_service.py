@@ -398,6 +398,7 @@ class TestActivityTimezone:
 @pytest.mark.anyio
 class TestCreateRetroactiveAchievement:
     async def test_create_activity_triggers_retroactive_achievement_when_12_activities_previous_month(
+        self,
         activity_service,
         mock_user_service,
         mock_program_service,
@@ -445,6 +446,7 @@ class TestCreateRetroactiveAchievement:
 
 
     async def test_create_activity_does_not_trigger_achievement_when_only_11_activities(
+        self,
         activity_service,
         mock_user_service,
         mock_program_service,
@@ -484,6 +486,7 @@ class TestCreateRetroactiveAchievement:
 
 
     async def test_create_activity_does_not_trigger_achievement_when_current_month(
+        self,
         activity_service,
         mock_user_service,
         mock_program_service,

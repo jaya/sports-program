@@ -1,6 +1,8 @@
 from datetime import datetime
 import logging
 
+from typing import TYPE_CHECKING
+
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +25,9 @@ from app.services.program_service import ProgramService
 from app.services.user_service import UserService
 from app.services.utils.reference_date import ReferenceDate
 from app.utils.date_validator import is_within_allowed_window
-from app.services.achievement_service import AchievementService
+
+if TYPE_CHECKING:
+    from app.services.achievement_service import AchievementService
 
 GOAL_ACTIVITIES = 12
 
@@ -34,7 +38,7 @@ class ActivityService:
         db: AsyncSession = Depends(get_db),
         user_service: UserService = Depends(),
         program_service: ProgramService = Depends(),
-        achievement_service: AchievementService = Depends()
+        achievement_service: "AchievementService" = Depends()
     ):
         self.db = db
         self.user_service = user_service
