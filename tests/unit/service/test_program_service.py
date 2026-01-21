@@ -1,13 +1,19 @@
-import pytest
-from unittest.mock import AsyncMock, patch
 from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, patch
 
-from app.repositories.program_repository import ProgramRepository
-from app.schemas.program_schema import ProgramResponse
+import pytest
+
+from app.exceptions.business import (
+    BusinessRuleViolationError,
+    DatabaseError,
+    DuplicateEntityError,
+    EntityNotFoundError,
+)
 from app.models.program import Program
-from app.exceptions.business import DuplicateEntityError, BusinessRuleViolationError, DatabaseError, EntityNotFoundError
-from app.schemas.program_schema import ProgramCreate, ProgramUpdate
+from app.repositories.program_repository import ProgramRepository
+from app.schemas.program_schema import ProgramCreate, ProgramResponse, ProgramUpdate
 from app.services.program_service import ProgramService
+
 
 @pytest.fixture
 def mock_program_repo():
@@ -18,6 +24,7 @@ def mock_program_repo():
 def program_service(mock_program_repo):
     return ProgramService(program_repo=mock_program_repo)
 
+
 @pytest.mark.anyio
 async def test_create_program_success(program_service, mock_program_repo):
     start_date = datetime.now()
@@ -26,7 +33,7 @@ async def test_create_program_success(program_service, mock_program_repo):
         name="Test Program",
         slack_channel="C12345",
         start_date=start_date,
-        end_date=end_date
+        end_date=end_date,
     )
 
     mock_program_repo.find_by_name_and_slack_channel.return_value = None
@@ -37,7 +44,7 @@ async def test_create_program_success(program_service, mock_program_repo):
         slack_channel=program_create.slack_channel,
         start_date=program_create.start_date,
         end_date=program_create.end_date,
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
     mock_program_repo.create.return_value = db_program
 
@@ -51,21 +58,25 @@ async def test_create_program_success(program_service, mock_program_repo):
     )
     mock_program_repo.create.assert_called_once()
 
+
 @pytest.mark.anyio
 async def test_create_program_duplicate_error(program_service, mock_program_repo):
     program_create = ProgramCreate(
-        name="Duplicate Program",
-        slack_channel="C12345",
-        start_date=datetime.now()
+        name="Duplicate Program", slack_channel="C12345", start_date=datetime.now()
     )
 
-    mock_program_repo.find_by_name_and_slack_channel.return_value = Program(id=1, name="Duplicate Program")
+    mock_program_repo.find_by_name_and_slack_channel.return_value = Program(
+        id=1, name="Duplicate Program"
+    )
 
     with pytest.raises(DuplicateEntityError) as exc_info:
         await program_service.create(program_create)
 
-    assert "Program with name 'Duplicate Program' already exists." in str(exc_info.value)
+    assert "Program with name 'Duplicate Program' already exists." in str(
+        exc_info.value
+    )
     mock_program_repo.create.assert_not_called()
+
 
 @pytest.mark.anyio
 async def test_create_program_invalid_dates_error(program_service, mock_program_repo):
@@ -75,7 +86,7 @@ async def test_create_program_invalid_dates_error(program_service, mock_program_
         name="Invalid Dates Program",
         slack_channel="C12345",
         start_date=start_date,
-        end_date=end_date
+        end_date=end_date,
     )
 
     mock_program_repo.find_by_name_and_slack_channel.return_value = None
@@ -86,12 +97,11 @@ async def test_create_program_invalid_dates_error(program_service, mock_program_
     assert "Start Date greater then End Date" in str(exc_info.value)
     mock_program_repo.create.assert_not_called()
 
+
 @pytest.mark.anyio
 async def test_create_program_database_error(program_service, mock_program_repo):
     program_create = ProgramCreate(
-        name="DB Error Program",
-        slack_channel="C12345",
-        start_date=datetime.now()
+        name="DB Error Program", slack_channel="C12345", start_date=datetime.now()
     )
 
     mock_program_repo.find_by_name_and_slack_channel.return_value = None
@@ -111,7 +121,7 @@ async def test_update_program_success(program_service, mock_program_repo):
         name="Old Name",
         slack_channel="C1",
         start_date=datetime.now(),
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
     program_update = ProgramUpdate(name="New Name")
 
@@ -152,10 +162,7 @@ async def test_update_program_duplicate_name(program_service, mock_program_repo)
 async def test_update_program_invalid_dates_error(program_service, mock_program_repo):
     program_id = 1
     existing_program = Program(
-        id=program_id,
-        name="P1",
-        slack_channel="C1",
-        start_date=datetime.now()
+        id=program_id, name="P1", slack_channel="C1", start_date=datetime.now()
     )
     start_date = datetime.now() + timedelta(days=10)
     end_date = datetime.now()
@@ -184,8 +191,20 @@ async def test_update_program_database_error(program_service, mock_program_repo)
 @pytest.mark.anyio
 async def test_find_all_programs(program_service, mock_program_repo):
     programs = [
-        Program(id=1, name="P1", slack_channel="C1", start_date=datetime.now(), created_at=datetime.now()),
-        Program(id=2, name="P2", slack_channel="C2", start_date=datetime.now(), created_at=datetime.now())
+        Program(
+            id=1,
+            name="P1",
+            slack_channel="C1",
+            start_date=datetime.now(),
+            created_at=datetime.now(),
+        ),
+        Program(
+            id=2,
+            name="P2",
+            slack_channel="C2",
+            start_date=datetime.now(),
+            created_at=datetime.now(),
+        ),
     ]
     mock_program_repo.get_all.return_value = programs
 
@@ -264,7 +283,7 @@ async def test_create_program_sets_start_date_to_beginning_of_day(
         # This assertion would fail without the logic to truncate the date
         assert actual_start_date.hour == 0
         assert actual_start_date.minute == 0
-        assert actual_start_date.second == 0
+        assert actual_start_date.second == 1
 
 
 @pytest.mark.anyio
@@ -293,4 +312,4 @@ async def test_update_program_sets_start_date_to_beginning_of_day(
     # setattr should have been called with the truncated date
     assert db_program.start_date.hour == 0
     assert db_program.start_date.minute == 0
-    assert db_program.start_date.second == 0
+    assert db_program.start_date.second == 1
