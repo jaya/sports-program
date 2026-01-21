@@ -30,7 +30,7 @@ class ProgramService:
             name=program.name,
             slack_channel=program.slack_channel,
             start_date=program.start_date.replace(
-                hour=0, minute=0, second=1, microsecond=0
+                hour=0, minute=0, second=0, microsecond=0
             ),
             end_date=program.end_date,
         )
