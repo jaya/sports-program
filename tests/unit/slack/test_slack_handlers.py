@@ -8,6 +8,7 @@ from app.interfaces.slack.slack_handlers import (
     handle_create_program,
     handle_list_activities,
     handle_list_programs,
+    handle_message_events,
 )
 from app.models.program import Program
 
@@ -291,3 +292,26 @@ async def test_handle_app_mention_error(mock_context):
         mock_context.client.chat_postEphemeral.assert_awaited_once()
         _, kwargs = mock_context.client.chat_postEphemeral.call_args
         assert "Error on registering activity" in kwargs.get("text", "")
+
+
+@pytest.mark.anyio
+async def test_handle_message_events_help(mock_context):
+    event = create_mock_event(text="help")
+
+    await handle_message_events(event, mock_context)
+
+    mock_context.say.assert_awaited_once()
+    _, kwargs = mock_context.say.call_args
+    assert "Help" in kwargs.get("text")
+    assert kwargs.get("blocks")
+
+
+@pytest.mark.anyio
+async def test_handle_message_events_default(mock_context):
+    event = create_mock_event(text="hello")
+
+    await handle_message_events(event, mock_context)
+
+    mock_context.say.assert_awaited_once()
+    args, _ = mock_context.say.call_args
+    assert "You can send `help`" in args[0]

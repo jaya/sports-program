@@ -19,6 +19,7 @@ from app.interfaces.slack.slack_views import (
     create_program_success_blocks,
     create_programs_list_blocks,
     error_blocks,
+    help_blocks,
     invalid_date_blocks,
     invalid_reference_date_blocks,
 )
@@ -209,5 +210,9 @@ async def handle_app_mention(event: dict, context: BoltContext):
 
 
 @slack_app.event("message")
-async def handle_message_events(body):
-    logger.info(body)
+async def handle_message_events(event, context: BoltContext):
+    if event.get("text", "").lower() == "help":
+        await context.say(blocks=help_blocks(), text="Help")
+        return
+
+    await context.say("You can send `help` to see the list of commands.")

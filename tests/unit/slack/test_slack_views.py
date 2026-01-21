@@ -7,6 +7,7 @@ from app.interfaces.slack.slack_views import (
     create_program_success_blocks,
     create_programs_list_blocks,
     error_blocks,
+    help_blocks,
     invalid_date_blocks,
     invalid_reference_date_blocks,
 )
@@ -203,3 +204,25 @@ class TestSlackBlocks:
         count_text = find_block_text_containing(blocks, "Number of activities recorded")
         assert count_text is not None
         assert "0" in count_text
+
+    # --- Tests for help_blocks ---
+
+    def test_help_blocks_content(self):
+        """Tests content of help blocks"""
+        blocks = help_blocks()
+
+        # Check for introduction
+        assert find_block_text_containing(blocks, "Sports Program Bot") is not None
+
+        # Check for sections
+        assert find_block_text_containing(blocks, "Prerequisites") is not None
+        assert (
+            find_block_text_containing(blocks, "Create and List Programs") is not None
+        )
+        assert find_block_text_containing(blocks, "Log an Activity") is not None
+        assert find_block_text_containing(blocks, "Track Progress") is not None
+
+        # Check for command examples
+        assert find_block_text_containing(blocks, "/create-program") is not None
+        assert find_block_text_containing(blocks, "/list-programs") is not None
+        assert find_block_text_containing(blocks, "/list-activities") is not None
