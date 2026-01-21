@@ -32,10 +32,19 @@ git clone https://github.com/jaya-academy/sports-program.git
 cd sports-program
 ```
 
-### 2. Install dependencies
+### 2. Setup project (Install dependencies & hooks)
 
+Run the setup script to install dependencies and configure pre-commit hooks automatically:
+
+**Windows:**
+```cmd
+setup.bat
+```
+
+**Linux/Mac:**
 ```bash
-poetry install
+chmod +x setup.sh
+./setup.sh
 ```
 
 ### 3. Configure environment
