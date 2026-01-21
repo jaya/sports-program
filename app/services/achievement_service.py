@@ -20,6 +20,36 @@ from app.schemas.achievement import (
     NotifyResponse,
     AchievementCreateResponse,
 )
+from app.services.activity_service import ActivityService
+
+
+async def _send_slack_notification(channel: str, message: str) -> None:
+    try:
+        await slack_app.client.chat_postMessage(
+            channel=channel,
+            text=message,
+        )
+    except Exception as e:
+        logging.error(f"Error sending Slack message: {e}")
+        raise ExternalServiceError(
+            service="Slack", message="Failed to send notification"
+        ) from e
+
+
+def _build_message(
+    achievements: list[Achievement], cycle_reference: str
+) -> tuple[str, list[str]]:
+    slack_mentions = [f"<@{ach.user.slack_id}>" for ach in achievements]
+    user_names = [ach.user.display_name for ach in achievements]
+    program_name = achievements[0].program.name
+
+    mentions = ", ".join(slack_mentions)
+    message = (
+        f"{mentions}! Parabéns por completarem o desafio {program_name} "
+        f"no ciclo {cycle_reference}!"
+    )
+
+    return message, user_names
 
 
 class AchievementService:
@@ -28,10 +58,12 @@ class AchievementService:
         achievement_repo: Annotated[AchievementRepository, Depends()],
         user_repo: Annotated[UserRepository, Depends()],
         program_repo: Annotated[ProgramRepository, Depends()],
+        activity_service: Annotated[ActivityService, Depends()],
     ):
         self.achievement_repo = achievement_repo
         self.user_repo = user_repo
         self.program_repo = program_repo
+        self.activity_service = activity_service
 
     async def create(
         self,
@@ -126,8 +158,8 @@ class AchievementService:
                 message="No pending achievements to notify.",
             )
 
-        message, user_names = self._build_message(pending, cycle_reference)
-        await self._send_slack_notification(program.slack_channel, message)
+        message, user_names = _build_message(pending, cycle_reference)
+        await _send_slack_notification(program.slack_channel, message)
         await self.achievement_repo.mark_as_notified([ach.id for ach in pending])
 
         return NotifyResponse(
@@ -136,30 +168,25 @@ class AchievementService:
             users=user_names,
         )
 
-    def _build_message(
-        self, achievements: list[Achievement], cycle_reference: str
-    ) -> tuple[str, list[str]]:
-        slack_mentions = [f"<@{ach.user.slack_id}>" for ach in achievements]
-        user_names = [ach.user.display_name for ach in achievements]
-        program_name = achievements[0].program.name
+    async def close_cycle(
+        self, program_name: str, cycle_reference: str
+    ) -> AchievementBatchResponse | None:
+        program = await self.program_repo.find_by_name(program_name)
+        if not program:
+            raise EntityNotFoundError("Program", program_name)
 
-        mentions = ", ".join(slack_mentions)
-        message = (
-            f"{mentions}! Parabéns por completarem o desafio {program_name} "
-            f"no ciclo {cycle_reference}!"
+        user_ids = await self.activity_service.find_all_user_by_program_completed(
+            program_name=program_name, cycle_reference=cycle_reference
         )
 
-        return message, user_names
+        if not user_ids:
+            return None
 
-    async def _send_slack_notification(self, channel: str, message: str) -> None:
-        try:
-            await slack_app.client.chat_postMessage(
-                channel=channel,
-                text=message,
-            )
-        except Exception as e:
-            logging.error(f"Error sending Slack message: {e}")
-            raise ExternalServiceError(
-                service="Slack",
-                message="Failed to send notification"
-            ) from e
+        batch = AchievementBatchCreate(
+            user_ids=user_ids,
+            program_id=program.id,
+            program_name=program.name,
+            cycle_reference=cycle_reference,
+        )
+
+        return await self.create_batch(batch)

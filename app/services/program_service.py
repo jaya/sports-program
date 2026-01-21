@@ -29,7 +29,9 @@ class ProgramService:
         db_program = Program(
             name=program.name,
             slack_channel=program.slack_channel,
-            start_date=program.start_date,
+            start_date=program.start_date.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ),
             end_date=program.end_date,
         )
 
@@ -50,6 +52,11 @@ class ProgramService:
                 raise DuplicateEntityError("Program", "name", program_update.name)
 
         update_data = program_update.model_dump(exclude_unset=True)
+
+        if "start_date" in update_data and update_data["start_date"] is not None:
+            update_data["start_date"] = update_data["start_date"].replace(
+                hour=0, minute=0, second=1, microsecond=0
+            )
 
         start_date = update_data.get("start_date", db_program.start_date)
         end_date = update_data.get("end_date", db_program.end_date)

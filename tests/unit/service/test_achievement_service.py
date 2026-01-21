@@ -13,8 +13,9 @@ from app.models.user import User
 from app.repositories.achievement_repository import AchievementRepository
 from app.repositories.program_repository import ProgramRepository
 from app.repositories.user_repository import UserRepository
-from app.schemas.achievement import AchievementBatchCreate, AchievementCreate
+from app.schemas.achievement import AchievementBatchCreate, AchievementBatchResponse, AchievementCreate
 from app.services.achievement_service import AchievementService
+from app.services.activity_service import ActivityService
 
 
 @pytest.fixture
@@ -33,11 +34,17 @@ def mock_program_repo():
 
 
 @pytest.fixture
-def service(mock_achievement_repo, mock_user_repo, mock_program_repo):
+def mock_activity_service():
+    return AsyncMock(spec=ActivityService)
+
+
+@pytest.fixture
+def service(mock_achievement_repo, mock_user_repo, mock_program_repo, mock_activity_service):
     return AchievementService(
         achievement_repo=mock_achievement_repo,
         user_repo=mock_user_repo,
         program_repo=mock_program_repo,
+        activity_service=mock_activity_service,
     )
 
 
@@ -242,3 +249,62 @@ async def test_notify_achievements_slack_error(service, mock_program_repo, mock_
             )
 
         assert "Slack" in str(exc_info.value.message)
+
+
+@pytest.mark.anyio
+async def test_close_cycle_success(
+    service, mock_program_repo, mock_activity_service, mock_achievement_repo, mock_user_repo
+):
+    program_name = "Challenge"
+    cycle_reference = "2023-10"
+    program = Program(id=1, name=program_name)
+    user_ids = [1, 2]
+
+    mock_program_repo.find_by_name.return_value = program
+    mock_activity_service.find_all_user_by_program_completed.return_value = user_ids
+    mock_achievement_repo.find_existing_user_ids.return_value = set()
+    mock_user_repo.find_all_by_ids.return_value = [
+        User(id=1, display_name="User 1"),
+        User(id=2, display_name="User 2"),
+    ]
+
+    result = await service.close_cycle(program_name, cycle_reference)
+
+    assert isinstance(result, AchievementBatchResponse)
+    assert result.total_created == 2
+    assert result.program_name == program_name
+    assert result.cycle_reference == cycle_reference
+    assert "User 1" in result.users
+    assert "User 2" in result.users
+
+    mock_program_repo.find_by_name.assert_called_once_with(program_name)
+    mock_activity_service.find_all_user_by_program_completed.assert_called_once_with(
+        program_name=program_name, cycle_reference=cycle_reference
+    )
+    mock_achievement_repo.create_many.assert_called_once()
+
+
+@pytest.mark.anyio
+async def test_close_cycle_program_not_found(service, mock_program_repo):
+    program_name = "Unknown"
+    mock_program_repo.find_by_name.return_value = None
+
+    with pytest.raises(EntityNotFoundError):
+        await service.close_cycle(program_name, "2023-10")
+
+
+@pytest.mark.anyio
+async def test_close_cycle_no_users_completed(
+    service, mock_program_repo, mock_activity_service
+):
+    program_name = "Challenge"
+    cycle_reference = "2023-10"
+    program = Program(id=1, name=program_name)
+
+    mock_program_repo.find_by_name.return_value = program
+    mock_activity_service.find_all_user_by_program_completed.return_value = []
+
+    result = await service.close_cycle(program_name, cycle_reference)
+
+    assert result is None
+    mock_activity_service.find_all_user_by_program_completed.assert_called_once()
