@@ -24,11 +24,18 @@ class SlackOAuthService:
             installation.team_id, installation.enterprise_id
         )
 
+        scope = ",".join(installation.bot_scopes) if installation.bot_scopes else None
+
         if not db_installation:
             db_installation = SlackInstallation(
                 team_id=installation.team_id,
                 enterprise_id=installation.enterprise_id,
                 is_enterprise_install=installation.is_enterprise_install,
+                bot_token=installation.bot_token,
+                bot_id=installation.bot_id,
+                bot_user_id=installation.bot_user_id,
+                installer_user_id=installation.user_id,
+                scope=scope,
             )
             logger.info(
                 "Creating new Slack installation for team %s (enterprise: %s)",
@@ -36,21 +43,19 @@ class SlackOAuthService:
                 installation.enterprise_id,
             )
             await self.installation_repo.create(db_installation)
+        else:
+            db_installation.bot_token = installation.bot_token
+            db_installation.bot_id = installation.bot_id
+            db_installation.bot_user_id = installation.bot_user_id
+            db_installation.installer_user_id = installation.user_id
+            db_installation.scope = scope
 
-        db_installation.bot_token = installation.bot_token
-        db_installation.bot_id = installation.bot_id
-        db_installation.bot_user_id = installation.bot_user_id
-        db_installation.installer_user_id = installation.user_id
-        db_installation.scope = (
-            ",".join(installation.bot_scopes) if installation.bot_scopes else None
-        )
-
-        logger.info(
-            "Updating Slack installation for team %s (enterprise: %s)",
-            installation.team_id,
-            installation.enterprise_id,
-        )
-        await self.installation_repo.update(db_installation)
+            logger.info(
+                "Updating Slack installation for team %s (enterprise: %s)",
+                installation.team_id,
+                installation.enterprise_id,
+            )
+            await self.installation_repo.update(db_installation)
 
     async def find_installation(
         self, enterprise_id: str | None, team_id: str | None

@@ -42,7 +42,7 @@ async def test_save_installation_new(slack_oauth_service, mock_installation_repo
     await slack_oauth_service.save_installation(installation)
 
     mock_installation_repo.create.assert_called_once()
-    mock_installation_repo.update.assert_called_once()
+    mock_installation_repo.update.assert_not_called()
     # Check if correct attributes were mapped
     args = mock_installation_repo.create.call_args[0][0]
     assert args.team_id == "T123"

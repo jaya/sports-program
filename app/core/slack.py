@@ -18,7 +18,7 @@ async def oauth_success(args):
         installation.team_id,
         installation.user_id,
     )
-    return await args.default_callback_options.success(args)
+    return await args.default.success(args)
 
 
 async def oauth_failure(args):
@@ -27,7 +27,7 @@ async def oauth_failure(args):
         args.reason,
         args.request.query.get("state"),
     )
-    return await args.default_callback_options.failure(args)
+    return await args.default.failure(args)
 
 
 oauth_settings = AsyncOAuthSettings(
