@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 from slack_sdk.oauth.installation_store import Installation
 
@@ -88,7 +88,8 @@ class SlackOAuthService:
 
     async def issue_state(self, state: str, expiration_seconds: int) -> str:
         expire_at = datetime.fromtimestamp(
-            datetime.now().timestamp() + expiration_seconds
+            datetime.now(UTC).timestamp() + expiration_seconds,
+            tz=UTC,
         )
         db_state = SlackState(state=state, expire_at=expire_at)
         logger.info("Issued Slack OAuth state: %s (expires: %s)", state, expire_at)
@@ -98,7 +99,7 @@ class SlackOAuthService:
     async def consume_state(self, state: str) -> bool:
         db_state = await self.state_repo.find_by_state(state)
         if db_state:
-            is_valid = db_state.expire_at > datetime.now()
+            is_valid = db_state.expire_at > datetime.now(UTC)
             logger.info("Consuming Slack OAuth state: %s. Valid: %s", state, is_valid)
             await self.state_repo.delete_by_state(state)
             return is_valid
