@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class BasicConfig(BaseSettings):
     ENV_SCOPE: str | None = None
     APP_NAME: str = "Sports Program API"
+    BOT_NAME: str = "Sports Program"
     DEBUG: bool = True
 
     SLACK_BOT_TOKEN: str = ""
