@@ -1,5 +1,6 @@
 @echo off
 echo Installing dependencies...
+call poetry lock
 call poetry install
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to install dependencies.
