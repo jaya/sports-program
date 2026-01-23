@@ -1,7 +1,6 @@
-from datetime import datetime
 import logging
-
-from typing import TYPE_CHECKING
+from datetime import datetime
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,10 +34,10 @@ GOAL_ACTIVITIES = 12
 class ActivityService:
     def __init__(
         self,
-        db: AsyncSession = Depends(get_db),
-        user_service: UserService = Depends(),
-        program_service: ProgramService = Depends(),
-        achievement_service: "AchievementService" = Depends()
+        db: Annotated[AsyncSession, Depends(get_db)],
+        user_service: Annotated[UserService, Depends()],
+        program_service: Annotated[ProgramService, Depends()],
+        achievement_service: Annotated["AchievementService", Depends()],
     ):
         self.db = db
         self.user_service = user_service
@@ -266,7 +265,7 @@ class ActivityService:
                 )
 
         return performed_at
-    
+
     async def _generate_retroactive_achievement(
         self,
         user_id: int,
@@ -274,7 +273,7 @@ class ActivityService:
         program,
         performed_at: datetime
     ) -> None:
-        
+
         try:
             cycle_reference = f"{performed_at.year}-{performed_at.month:02d}"
             achievement_create = AchievementCreate(cycle_reference=cycle_reference)
