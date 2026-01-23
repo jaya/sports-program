@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from app.core.config import settings
 from app.models.activity import Activity
 from app.models.program import Program
 
@@ -244,3 +245,93 @@ def activities_list_blocks(activities: list[Activity]) -> list[dict]:
         )
 
     return blocks
+
+
+def help_blocks():
+    return [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    f"Hi there :wave: I'm the {settings.BOT_NAME}. "
+                    f"I'm here to help you "
+                    "manage programs and log your physical activities."
+                ),
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    "*Prerequisites*\n"
+                    "To start using me, *add me to a channel* "
+                    "and I'll introduce myself. I'm usually added to a team or project "
+                    f"channel. Type `/invite @{settings.BOT_NAME}` from the channel "
+                ),
+            },
+        },
+        {"type": "divider"},
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Here are the main ways to interact with me:\n",
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    "*:one: Create and List Programs*\nUse the `/create-program <name>`"
+                    " command to create a new incentive program.\nUse `/list-programs`"
+                    " to view all currently active programs.\n\n"
+                ),
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    "*:two: Log an Activity*\nTo log what you've done, simply mention "
+                    "me in a message with the description."
+                    "\n\n:calendar: *Dates*: By default, it logs for *today*. "
+                    "To log for a specific date, use the `@DD/MM` format."
+                    f"\n\nExample: `@{settings.BOT_NAME} "
+                    "5km run @20/01` (logs for Jan 20th)"
+                    "\n:camera_with_flash: _Tip: If you attach a "
+                    "photo to the message, it will be saved as evidence!\n\n"
+                ),
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": (
+                    "*:three: Track Progress*\nUse the `/list-activities` command "
+                    "to see the list of logged activities."
+                    "\n\n:calendar: *Filtering*: By default, it shows the "
+                    "*current month*. To view a past month, use the `@MM/YYYY` "
+                    "format."
+                    "\n\nExample: `/list-activities @12/2025`\n\n"
+                ),
+            },
+        },
+        {"type": "divider"},
+        {
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": (
+                        ":eyes: Questions? "
+                        "Type *help* at any time to see a summary of commands."
+                    ),
+                }
+            ],
+        },
+    ]

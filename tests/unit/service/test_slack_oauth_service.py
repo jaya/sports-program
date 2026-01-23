@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -42,7 +42,7 @@ async def test_save_installation_new(slack_oauth_service, mock_installation_repo
     await slack_oauth_service.save_installation(installation)
 
     mock_installation_repo.create.assert_called_once()
-    mock_installation_repo.update.assert_called_once()
+    mock_installation_repo.update.assert_not_called()
     # Check if correct attributes were mapped
     args = mock_installation_repo.create.call_args[0][0]
     assert args.team_id == "T123"
@@ -66,7 +66,8 @@ async def test_issue_state(slack_oauth_service, mock_state_repo):
 async def test_consume_state_valid(slack_oauth_service, mock_state_repo):
     state = "state123"
     db_state = SlackState(
-        state=state, expire_at=datetime.fromtimestamp(datetime.now().timestamp() + 100)
+        state=state,
+        expire_at=datetime.fromtimestamp(datetime.now(UTC).timestamp() + 100, tz=UTC),
     )
     mock_state_repo.find_by_state.return_value = db_state
 
@@ -80,7 +81,8 @@ async def test_consume_state_valid(slack_oauth_service, mock_state_repo):
 async def test_consume_state_expired(slack_oauth_service, mock_state_repo):
     state = "state123"
     db_state = SlackState(
-        state=state, expire_at=datetime.fromtimestamp(datetime.now().timestamp() - 100)
+        state=state,
+        expire_at=datetime.fromtimestamp(datetime.now(UTC).timestamp() - 100, tz=UTC),
     )
     mock_state_repo.find_by_state.return_value = db_state
 

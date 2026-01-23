@@ -8,6 +8,7 @@ from app.interfaces.slack.slack_handlers import (
     handle_create_program,
     handle_list_activities,
     handle_list_programs,
+    handle_message_events,
 )
 from app.models.program import Program
 
@@ -24,18 +25,22 @@ GET_ACTIVITY_SERVICE = f"{HANDLERS_PATH}.get_activity_service"
 PARSE_ACTIVITY_DATE = f"{HANDLERS_PATH}.parse_activity_date"
 REGISTER_ACTIVITY_ACTION = f"{HANDLERS_PATH}.register_activity_action"
 ACTIVITY_REGISTERED_BLOCKS = f"{HANDLERS_PATH}.activity_registered_blocks"
+HELP_BLOCKS = f"{HANDLERS_PATH}.help_blocks"
 
 
 def create_mock_command(text="", channel_id="C123", user_id="U123"):
     return {"channel_id": channel_id, "user_id": user_id, "text": text}
 
 
-def create_mock_event(text="", channel="C123", user="U123", files=None):
+def create_mock_event(
+    text="", channel="C123", user="U123", files=None, channel_type=None
+):
     return {
         "text": text,
         "user": user,
         "channel": channel,
         "files": files or [{}],
+        "channel_type": channel_type,
     }
 
 
@@ -291,3 +296,52 @@ async def test_handle_app_mention_error(mock_context):
         mock_context.client.chat_postEphemeral.assert_awaited_once()
         _, kwargs = mock_context.client.chat_postEphemeral.call_args
         assert "Error on registering activity" in kwargs.get("text", "")
+
+
+@pytest.mark.anyio
+async def test_handle_app_mention_help(mock_context):
+    event = create_mock_event(text="help")
+
+    with (
+        patch(PARSE_ACTIVITY_DATE) as mock_parse_date,
+        patch(HELP_BLOCKS) as mock_help_blocks,
+    ):
+        mock_parse_date.return_value = ("help", None)
+        mock_help_blocks.return_value = [
+            {"type": "section", "text": {"type": "mrkdwn", "text": "Help"}}
+        ]
+
+        await handle_app_mention(event, mock_context)
+
+        mock_context.client.chat_postEphemeral.assert_awaited_once()
+        _, kwargs = mock_context.client.chat_postEphemeral.call_args
+        assert "Help" in kwargs.get("text")
+        assert kwargs.get("blocks")
+
+
+@pytest.mark.anyio
+async def test_handle_message_events_help(mock_context):
+    event = create_mock_event(text="help", channel_type="im")
+
+    with patch(HELP_BLOCKS) as mock_help_blocks:
+        mock_help_blocks.return_value = [
+            {"type": "section", "text": {"type": "mrkdwn", "text": "Help"}}
+        ]
+
+        await handle_message_events(event, mock_context)
+
+        mock_context.say.assert_awaited_once()
+        _, kwargs = mock_context.say.call_args
+        assert "Help" in kwargs.get("text")
+        assert kwargs.get("blocks")
+
+
+@pytest.mark.anyio
+async def test_handle_message_events_default(mock_context):
+    event = create_mock_event(text="hello", channel_type="im")
+
+    await handle_message_events(event, mock_context)
+
+    mock_context.say.assert_awaited_once()
+    args, _ = mock_context.say.call_args
+    assert "You can send `help`" in args[0]
