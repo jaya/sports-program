@@ -1,5 +1,5 @@
 import logging
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends
 
@@ -17,8 +17,13 @@ from app.schemas.achievement import (
     AchievementBatchCreate,
     AchievementBatchResponse,
     AchievementCreate,
+    AchievementCreateResponse,
     NotifyResponse,
 )
+
+if TYPE_CHECKING:
+    from app.services.activity_service import ActivityService
+
 from app.services.activity_service import ActivityService
 
 
@@ -57,7 +62,7 @@ class AchievementService:
         achievement_repo: Annotated[AchievementRepository, Depends()],
         user_repo: Annotated[UserRepository, Depends()],
         program_repo: Annotated[ProgramRepository, Depends()],
-        activity_service: Annotated[ActivityService, Depends()],
+        activity_service: Annotated["ActivityService", Depends()],
     ):
         self.achievement_repo = achievement_repo
         self.user_repo = user_repo
@@ -69,14 +74,30 @@ class AchievementService:
         achievement_create: AchievementCreate,
         program_id: int,
         user_id: int,
-    ):
+    ) -> AchievementCreateResponse | None:
+        already_exists = await self.achievement_repo.user_has_achievement(
+            user_id=user_id,
+            program_id=program_id,
+            cycle_reference=achievement_create.cycle_reference
+        )
+
+        if already_exists:
+            logging.info(
+                f"Achievement already exists - "
+                f"user_id={user_id}, program_id={program_id}, "
+                f"cycle={achievement_create.cycle_reference}"
+            )
+            return None
+
         db_achievement = Achievement(
             user_id=user_id,
             program_id=program_id,
             cycle_reference=achievement_create.cycle_reference,
         )
         try:
-            return await self.achievement_repo.create(db_achievement)
+            created = await self.achievement_repo.create(db_achievement)
+            logging.info(f"Achievement created for user {user_id}")
+            return created
         except Exception as e:
             raise DatabaseError() from e
 

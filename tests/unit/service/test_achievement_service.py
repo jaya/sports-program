@@ -63,11 +63,16 @@ async def test_achievement_service_create_success(service, mock_achievement_repo
     expected_achievement = Achievement(
         id=1, user_id=1, program_id=1, cycle_reference="2023-10"
     )
+
+    mock_achievement_repo.user_has_achievement.return_value = False
     mock_achievement_repo.create.return_value = expected_achievement
 
     result = await service.create(achievement_create, program_id=1, user_id=1)
 
     assert result == expected_achievement
+    mock_achievement_repo.user_has_achievement.assert_called_once_with(
+        user_id=1, program_id=1, cycle_reference="2023-10"
+    )
     mock_achievement_repo.create.assert_called_once()
 
 
@@ -76,6 +81,9 @@ async def test_achievement_service_create_database_error(
     service, mock_achievement_repo
 ):
     achievement_create = AchievementCreate(cycle_reference="2023-10")
+
+    mock_achievement_repo.user_has_achievement.return_value = False
+
     mock_achievement_repo.create.side_effect = Exception("DB Fail")
 
     with pytest.raises(DatabaseError):

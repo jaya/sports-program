@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 
 import pytest
+from freezegun import freeze_time
 
 from app.exceptions.business import (
     BusinessRuleViolationError,
@@ -13,6 +14,7 @@ from app.models.program import Program
 from app.models.user import User
 from app.repositories.activity_repository import ActivityRepository
 from app.schemas.activity_schema import ActivityCreate, ActivityUpdate
+from app.services.achievement_service import AchievementService
 from app.services.activity_service import ActivityService
 from app.services.program_service import ProgramService
 from app.services.user_service import UserService
@@ -34,9 +36,19 @@ def mock_program_service():
 
 
 @pytest.fixture
-def activity_service(mock_db, mock_user_service, mock_program_service):
+def mock_achievement_service():
+    return AsyncMock(spec=AchievementService)
+
+
+@pytest.fixture
+def activity_service(
+    mock_db, mock_user_service, mock_program_service, mock_achievement_service
+):
     service = ActivityService(
-        db=mock_db, user_service=mock_user_service, program_service=mock_program_service
+        db=mock_db,
+        user_service=mock_user_service,
+        program_service=mock_program_service,
+        achievement_service=mock_achievement_service,
     )
     service.activity_repo = AsyncMock(spec=ActivityRepository)
     return service
@@ -65,7 +77,12 @@ def program(today):
 
 @pytest.fixture
 def setup_mocks(
-    activity_service, mock_user_service, mock_program_service, user, program
+    activity_service,
+    mock_user_service,
+    mock_program_service,
+    user,
+    program,
+    mock_achievement_service,
 ):
     mock_user_service.find_by_slack_id.return_value = user
     mock_program_service.find_by_slack_channel.return_value = [program]
@@ -74,6 +91,7 @@ def setup_mocks(
 
     activity_service.activity_repo.check_activity_same_day.return_value = None
     activity_service.activity_repo.count_monthly.return_value = 5
+    mock_achievement_service.create.return_value = None
 
     activity_service.activity_repo.create.side_effect = lambda act: setattr(
         act, "id", 1
@@ -386,3 +404,128 @@ class TestActivityTimezone:
         )
         created = activity_service.activity_repo.create.call_args[0][0]
         assert created.performed_at.tzinfo == tz
+
+
+@pytest.mark.anyio
+class TestCreateRetroactiveAchievement:
+    async def test_create_activity_triggers_retro_achievement_when_12_prev_month(
+        self,
+        activity_service,
+        mock_user_service,
+        mock_program_service,
+        mock_achievement_service,
+        user,
+    ):
+        with freeze_time("2026-01-20"):
+            program_2025 = Program(
+                id=1,
+                slack_channel="C123",
+                start_date=datetime(2025, 1, 1),
+                end_date=datetime(2026, 12, 31),
+            )
+
+            # Setup mocks
+            mock_user_service.find_by_slack_id.return_value = user
+            mock_program_service.find_by_slack_channel.return_value = [program_2025]
+            activity_service.activity_repo.check_activity_same_day.return_value = None
+            activity_service.activity_repo.count_monthly.return_value = 12
+
+            async def assign_id(activity):
+                activity.id = 1
+
+            activity_service.activity_repo.create.side_effect = assign_id
+
+            previous_month_date = datetime(2025, 12, 15)
+
+            activity_create = ActivityCreate(
+                description="12ª Activity",
+                performed_at=previous_month_date,
+                evidence_url="http://test.com",
+            )
+
+            result = await activity_service.create(activity_create, "C123", "U123")
+
+            assert result.count_month == 12
+
+            mock_achievement_service.create.assert_called_once()
+
+            call_args = mock_achievement_service.create.call_args
+            assert call_args[1]["user_id"] == 1
+            assert call_args[1]["program_id"] == 1
+            assert call_args[1]["achievement_create"].cycle_reference == "2025-12"
+
+    async def test_create_activity_does_not_trigger_achievement_when_only_11_activities(
+        self,
+        activity_service,
+        mock_user_service,
+        mock_program_service,
+        mock_achievement_service,
+        user,
+    ):
+        with freeze_time("2026-01-20"):
+            program_2025 = Program(
+                id=1,
+                slack_channel="C123",
+                start_date=datetime(2025, 1, 1),
+                end_date=datetime(2026, 12, 31),
+            )
+
+            mock_user_service.find_by_slack_id.return_value = user
+            mock_program_service.find_by_slack_channel.return_value = [program_2025]
+            activity_service.activity_repo.check_activity_same_day.return_value = None
+            activity_service.activity_repo.count_monthly.return_value = 11
+
+            async def assign_id(activity):
+                activity.id = 1
+
+            activity_service.activity_repo.create.side_effect = assign_id
+
+            previous_month_date = datetime(2025, 12, 15)
+
+            activity_create = ActivityCreate(
+                description="11ª Activity",
+                performed_at=previous_month_date,
+                evidence_url="http://test.com",
+            )
+
+            await activity_service.create(activity_create, "C123", "U123")
+
+            mock_achievement_service.create.assert_not_called()
+
+    async def test_create_activity_does_not_trigger_achievement_when_current_month(
+        self,
+        activity_service,
+        mock_user_service,
+        mock_program_service,
+        mock_achievement_service,
+        user,
+    ):
+        with freeze_time("2026-01-20"):
+            program_2026 = Program(
+                id=1,
+                slack_channel="C123",
+                start_date=datetime(2026, 1, 1),
+                end_date=datetime(2026, 12, 31),
+            )
+
+            mock_user_service.find_by_slack_id.return_value = user
+            mock_program_service.find_by_slack_channel.return_value = [program_2026]
+            activity_service.activity_repo.check_activity_same_day.return_value = None
+            activity_service.activity_repo.count_monthly.return_value = 12
+
+            async def assign_id(activity):
+                activity.id = 1
+
+            activity_service.activity_repo.create.side_effect = assign_id
+
+            current_month_date = datetime(2026, 1, 15)
+
+            activity_create = ActivityCreate(
+                description="Activity",
+                performed_at=current_month_date,
+                evidence_url="http://test.com",
+            )
+
+            await activity_service.create(activity_create, "C123", "U123")
+
+            mock_achievement_service.create.assert_not_called()
