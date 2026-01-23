@@ -19,6 +19,7 @@ from app.interfaces.slack.slack_views import (
     create_program_success_blocks,
     create_programs_list_blocks,
     error_blocks,
+    help_blocks,
     invalid_date_blocks,
     invalid_reference_date_blocks,
 )
@@ -160,10 +161,20 @@ async def handle_app_mention(event: dict, context: BoltContext):
     channel_id = event.get("channel")
     evidence_url = None
     files = event.get("files", [{}])
+
     if len(files) > 0:
         evidence_url = files[0].get("url_private")
 
     description, activity_date = parse_activity_date(text)
+
+    if description.lower() == "help":
+        await context.client.chat_postEphemeral(
+            channel=channel_id,
+            user=user_id,
+            blocks=help_blocks(),
+            text="Help",
+        )
+        return
 
     if activity_date is None:
         blocks = invalid_date_blocks()
@@ -209,5 +220,9 @@ async def handle_app_mention(event: dict, context: BoltContext):
 
 
 @slack_app.event("message")
-async def handle_message_events(body):
-    logger.info(body)
+async def handle_message_events(event, context: BoltContext):
+    if event.get("channel_type") == "im":
+        if event.get("text", "").lower() == "help":
+            await context.say(blocks=help_blocks(), text="Help")
+            return
+        await context.say("You can send `help` to see the list of commands.")

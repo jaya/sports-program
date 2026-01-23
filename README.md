@@ -75,32 +75,57 @@ uvicorn app.main:app --reload
 
 ## 🤖 Slack Integration
 
-The application uses the **Slack Bolt** framework to handle interactions. You need to configure your Slack App
-credentials to allow the bot to communicate with the workspace.
+The application uses the **Slack Bolt** framework with **OAuth** support. This allows the app to be installed in multiple workspaces.
 
 ### Configuration Steps
 
 1. **Create or Select an App**:
     - Go to [Slack Apps](https://api.slack.com/apps).
-    - Create a new app or select an existing one.
 
-2. **Get Credentials**:
-    - **Signing Secret**: Navigate to **Basic Information** > **App Credentials**. Copy the `Signing Secret`.
-    - **Bot Token**: Navigate to **OAuth & Permissions** > **OAuth Tokens for Your Workspace**. Copy the
-      `Bot User OAuth Token` (starts with `xoxb-`).
+2. **Get OAuth Credentials**:
+    - **Client ID & Client Secret**: Navigate to **Basic Information** > **App Credentials**.
+    - **Signing Secret**: Also in **Basic Information**.
 
 3. **Update Environment Variables**:
-    - Open your `.env` file (copied from `.env.example`).
-    - Fill in the variables:
+    - Open your `.env` file and fill in:
       ```env
-      SLACK_SIGNING_SECRET=your_signing_secret_here
-      SLACK_BOT_TOKEN=xoxb-your-bot-token-here
+      SLACK_CLIENT_ID=your_client_id
+      SLACK_CLIENT_SECRET=your_client_secret
+      SLACK_SIGNING_SECRET=your_signing_secret
+      SLACK_SCOPES=commands,chat:write
       ```
 
-4. **Development Setup**:
-    - Ensure your bot has the required **Bot Token Scopes** (e.g., `commands`, `chat:write`, `app_mentions:read`) under
-      **OAuth & Permissions**.
-    - Reinstall the app to your workspace if you add new scopes.
+4. **OAuth & Permissions**:
+    - Add the Redirect URL: `https://your-domain.com/slack/oauth_redirect`.
+    - Ensure required scopes are added.
+
+5. **Installation Entry Point**:
+    - The application provides a default installation page at `/slack/install`.
+    - This page contains the **Add to Slack** button which initiates the OAuth flow for new workspaces.
+
+## 🧪 Local Testing Guide
+
+To test the Slack integration locally, you need to expose your local server to the internet using a tool like **ngrok**.
+
+### 1. Preparar o Ambiente Local
+1. Instale e execute o ngrok:
+   ```bash
+   ngrok http 8000
+   ```
+2. Copie a URL gerada (ex: `https://abcd-123.ngrok-free.app`).
+
+### 2. Configurar o Slack App Dashboard
+No [Slack App Dashboard](https://api.slack.com/apps):
+
+1. **OAuth & Permissions**: Adicione a Redirect URL usando o seu ngrok: `https://abcd-123.ngrok-free.app/slack/oauth_redirect`.
+2. **Event Subscriptions**: Ative e configure a Request URL: `https://abcd-123.ngrok-free.app/slack/events`.
+3. **Slash Commands**: Garanta que os comandos apontem para a URL de eventos acima.
+
+### 3. Instalação e Validação
+1. Inicie o servidor: `poetry run uvicorn app.main:app --reload`
+2. Acesse: `https://abcd-123.ngrok-free.app/slack/install`
+3. Clique em **Add to Slack** e autorize.
+4. Teste um comando no Slack (ex: `/list-programs`).
 
 ## 🤝 buting
 
