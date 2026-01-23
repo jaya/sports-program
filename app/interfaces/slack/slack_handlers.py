@@ -1,4 +1,4 @@
-import logging
+import structlog
 
 from slack_bolt import Ack, BoltContext
 
@@ -26,8 +26,7 @@ from app.interfaces.slack.slack_views import (
 from app.schemas.activity_schema import ActivityCreate
 from app.utils.parsers import parse_activity_date, parse_reference_date
 
-logging.basicConfig(level=logging.ERROR)
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 @slack_app.command("/create-program")
@@ -36,6 +35,7 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
     Handle the /create-program command.
     """
     await ack()
+    logger.info("Slack command for program creation received", user_id=command.get("user_id"), channel_id=command.get("channel_id"), program_name=command.get("text"))
     channel_id = command.get("channel_id")
     user_id = command.get("user_id")
     program_name = command.get("text")
@@ -62,7 +62,7 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
             program.name, program.slack_channel, program.start_date, program.end_date
         )
     except Exception as e:
-        logger.error(f"Error on creating program: {str(e)}", exc_info=True)
+        logger.error("Failed to create program from Slack", user_id=user_id, program_name=program_name, error=str(e))
         blocks = error_blocks(str(e))
         await context.client.chat_postEphemeral(
             channel=channel_id,
@@ -83,6 +83,7 @@ async def handle_list_programs(ack: Ack, command: dict, context: BoltContext):
     Handle the /list-programs command.
     """
     await ack()
+    logger.info("Slack command for program list received", user_id=command.get("user_id"), channel_id=command.get("channel_id"))
     db = context["db"]
     channel_id = command.get("channel_id")
     user_id = command.get("user_id")
@@ -91,7 +92,7 @@ async def handle_list_programs(ack: Ack, command: dict, context: BoltContext):
         programs = await list_programs_action(service)
         blocks = create_programs_list_blocks(programs)
     except Exception as e:
-        logger.error(f"Error listing programs: {str(e)}", exc_info=True)
+        logger.error("Failed to list programs", user_id=user_id, error=str(e))
         blocks = error_blocks(str(e))
         await context.client.chat_postEphemeral(
             channel=channel_id,
@@ -111,6 +112,7 @@ async def handle_list_programs(ack: Ack, command: dict, context: BoltContext):
 @slack_app.command("/list-activities")
 async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
     await ack()
+    logger.info("Slack command for activity list received", user_id=command.get("user_id"), channel_id=command.get("channel_id"), text=command.get("text"))
     user_id = command.get("user_id")
     channel_id = command.get("channel_id")
     text = command.get("text", "")
@@ -144,6 +146,7 @@ async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
         )
 
     except Exception as e:
+        logger.error("Failed to list activities", user_id=user_id, error=str(e))
         blocks = error_blocks(str(e))
         await context.client.chat_postEphemeral(
             channel=channel_id,
@@ -156,6 +159,7 @@ async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
 
 @slack_app.event("app_mention")
 async def handle_app_mention(event: dict, context: BoltContext):
+    logger.info("Bot mention received", user_id=event.get("user"), channel_id=event.get("channel"), text=event.get("text"))
     text = event.get("text", "")
     user_id = event.get("user")
     channel_id = event.get("channel")
@@ -209,6 +213,7 @@ async def handle_app_mention(event: dict, context: BoltContext):
             text="Activity registered!",
         )
     except Exception as e:
+        logger.error("Failed to register activity from Slack", user_id=user_id, channel_id=channel_id, error=str(e))
         blocks = error_blocks(str(e))
         await context.client.chat_postEphemeral(
             channel=channel_id,

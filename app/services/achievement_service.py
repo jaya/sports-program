@@ -29,7 +29,7 @@ async def _send_slack_notification(channel: str, message: str) -> None:
             text=message,
         )
     except Exception as e:
-        logging.error(f"Error sending Slack message: {e}")
+        logger.error("Failed to send Slack notification", channel=channel, error=str(e))
         raise ExternalServiceError(
             service="Slack", message="Failed to send notification"
         ) from e
@@ -84,7 +84,7 @@ class AchievementService:
     async def create_batch(
         self, achievement_batch: AchievementBatchCreate
     ) -> AchievementBatchResponse:
-        logger.info("achievement_batch_started", program_id=achievement_batch.program_id, cycle=achievement_batch.cycle_reference)
+        logger.info("Achievement batch processing started", program_id=achievement_batch.program_id, cycle=achievement_batch.cycle_reference)
         existing_user_ids = await self.achievement_repo.find_existing_user_ids(
             program_id=achievement_batch.program_id,
             cycle_reference=achievement_batch.cycle_reference,
@@ -92,7 +92,7 @@ class AchievementService:
         )
 
         if existing_user_ids:
-            logger.info("achievements_skipped", count=len(existing_user_ids))
+            logger.info("Achievements skipped as they already exist", count=len(existing_user_ids))
 
         new_user_ids = [
             uid for uid in achievement_batch.user_ids if uid not in existing_user_ids
@@ -109,16 +109,16 @@ class AchievementService:
             ]
             try:
                 await self.achievement_repo.create_many(db_achievements)
-                logger.info("achievement_created", count=len(new_user_ids))
+                logger.info("Achievements created successfully", count=len(new_user_ids))
             except Exception as e:
-                logger.error("entity_creation_failed", entity="Achievement", error=str(e))
+                logger.error("Failed to create achievements", entity="Achievement", error=str(e))
                 raise DatabaseError() from e
 
         users = []
         if new_user_ids:
             users = await self.user_repo.find_all_by_ids(new_user_ids)
 
-        logger.info("achievement_batch_completed", total=len(new_user_ids))
+        logger.info("Achievement batch completed", total=len(new_user_ids))
         return AchievementBatchResponse(
             total_created=len(new_user_ids),
             program_name=achievement_batch.program_name,
@@ -149,6 +149,7 @@ class AchievementService:
         message, user_names = _build_message(pending, cycle_reference)
         await _send_slack_notification(program.slack_channel, message)
         await self.achievement_repo.mark_as_notified([ach.id for ach in pending])
+        logger.info("Slack notifications sent for achievements", count=len(pending), channel=program.slack_channel)
 
         return NotifyResponse(
             total_notified=len(pending),

@@ -10,7 +10,7 @@ async def logging_middleware(request: Request, call_next):
     start_time = time.perf_counter()
 
     logger.info(
-        "request_started",
+        "HTTP request started",
         method=request.method,
         path=request.url.path,
     )
@@ -19,7 +19,7 @@ async def logging_middleware(request: Request, call_next):
 
     process_time = time.perf_counter() - start_time
     logger.info(
-        "request_finished",
+        "HTTP request finished",
         method=request.method,
         path=request.url.path,
         status_code=response.status_code,

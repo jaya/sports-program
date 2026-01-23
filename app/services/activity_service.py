@@ -73,9 +73,9 @@ class ActivityService:
 
         try:
             await self.activity_repo.create(db_activity)
-            logger.info("activity_created", user_id=user_id, program_id=program_found.id, activity_id=db_activity.id)
+            logger.info("Activity registered successfully", user_id=user_id, program_id=program_found.id, activity_id=db_activity.id)
         except Exception as e:
-            logger.error("activity_creation_failed", user_id=user_id, error=str(e))
+            logger.error("Failed to create entity", entity="Activity", user_id=user_id, error=str(e))
             raise DatabaseError() from e
 
         total_month = await self.activity_repo.count_monthly(
@@ -127,8 +127,10 @@ class ActivityService:
         try:
             await self.db.commit()
             await self.db.refresh(db_activity)
+            logger.info("Activity updated successfully", user_id=user_id, activity_id=db_activity.id)
         except Exception as e:
             await self.db.rollback()
+            logger.error("Failed to update entity", entity="Activity", activity_id=id, error=str(e))
             raise DatabaseError() from e
 
         total_month = await self.activity_repo.count_monthly(
@@ -152,8 +154,10 @@ class ActivityService:
         try:
             await self.db.delete(activity)
             await self.db.commit()
+            logger.info("Activity deleted successfully", activity_id=id, slack_id=slack_id)
         except Exception as e:
             await self.db.rollback()
+            logger.error("Failed to delete entity", entity="Activity", activity_id=id, error=str(e))
             raise DatabaseError() from e
 
     async def find_by_id(self, id: int, slack_id: str) -> Activity:
@@ -201,11 +205,15 @@ class ActivityService:
         if user_found:
             return user_found.id
         else:
-            display_name = await self.user_service.get_slack_display_name(slack_id)
-            new_user = await self.user_service.create(
-                UserCreate(slack_id=slack_id, display_name=display_name)
-            )
-            return new_user.id
+            try:
+                display_name = await self.user_service.get_slack_display_name(slack_id)
+                new_user = await self.user_service.create(
+                    UserCreate(slack_id=slack_id, display_name=display_name)
+                )
+                return new_user.id
+            except Exception as e:
+                logger.warning("User validation failed", slack_id=slack_id, error=str(e))
+                raise
 
     async def _validate_program_by_slack_channel(self, program_slack_channel: str):
         program_found = await self.program_service.find_by_slack_channel(

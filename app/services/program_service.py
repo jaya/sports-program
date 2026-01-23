@@ -24,6 +24,7 @@ class ProgramService:
             program.name, program.slack_channel
         )
         if program_found:
+            logger.warning("Program name already exists", entity="Program", name=program.name, slack_channel=program.slack_channel)
             raise DuplicateEntityError("Program", "name", program.name)
         if program.end_date is not None and program.end_date <= program.start_date:
             raise BusinessRuleViolationError("Start Date greater then End Date")
@@ -39,10 +40,10 @@ class ProgramService:
 
         try:
             created = await self.program_repo.create(db_program)
-            logger.info("program_created", program_name=created.name, program_id=created.id)
+            logger.info("Program created successfully", program_name=created.name, program_id=created.id)
             return ProgramResponse.model_validate(created)
         except Exception as e:
-            logger.error("entity_creation_failed", entity="Program", program_name=program.name, error=str(e))
+            logger.error("Failed to create entity", entity="Program", program_name=program.name, error=str(e))
             raise DatabaseError() from e
 
     async def update(self, id: int, program_update: ProgramUpdate) -> ProgramResponse:
@@ -53,6 +54,7 @@ class ProgramService:
         if program_update.name and program_update.name != db_program.name:
             existing = await self.program_repo.find_by_name(program_update.name)
             if existing and existing.id != id:
+                logger.warning("Program name already exists", entity="Program", name=program_update.name)
                 raise DuplicateEntityError("Program", "name", program_update.name)
 
         update_data = program_update.model_dump(exclude_unset=True)
@@ -73,8 +75,10 @@ class ProgramService:
 
         try:
             updated = await self.program_repo.update(db_program)
+            logger.info("Program updated successfully", program_name=updated.name, program_id=updated.id)
             return ProgramResponse.model_validate(updated)
         except Exception as e:
+            logger.error("Failed to update entity", entity="Program", program_id=id, error=str(e))
             raise DatabaseError() from e
 
     async def find_by_id(self, id: int) -> Program:

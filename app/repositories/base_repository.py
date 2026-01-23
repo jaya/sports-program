@@ -21,10 +21,10 @@ class BaseRepository(Generic[ModelType]):
         try:
             await self.session.commit()
             await self.session.refresh(obj_in)
-            logger.debug("entity_created", entity=self.model.__name__, id=getattr(obj_in, "id", None))
+            logger.debug("Entity created successfully", entity=self.model.__name__, id=getattr(obj_in, "id", None))
         except Exception as e:
             await self.session.rollback()
-            logger.error("entity_creation_failed", entity=self.model.__name__, error=str(e))
+            logger.error("Failed to create entity", entity=self.model.__name__, error=str(e))
             raise
         return obj_in
 
@@ -43,10 +43,10 @@ class BaseRepository(Generic[ModelType]):
         try:
             await self.session.commit()
             await self.session.refresh(obj_in)
-            logger.debug("entity_updated", entity=self.model.__name__, id=getattr(obj_in, "id", None))
+            logger.debug("Entity updated successfully", entity=self.model.__name__, id=getattr(obj_in, "id", None))
         except Exception as e:
             await self.session.rollback()
-            logger.error("entity_update_failed", entity=self.model.__name__, error=str(e))
+            logger.error("Failed to update entity", entity=self.model.__name__, error=str(e))
             raise
         return obj_in
 
@@ -56,9 +56,9 @@ class BaseRepository(Generic[ModelType]):
         self.session.add_all(objs)
         try:
             await self.session.commit()
-            logger.debug("entity_created", entity=self.model.__name__, count=len(objs), batch=True)
+            logger.debug("Multiple entities created", entity=self.model.__name__, count=len(objs), batch=True)
             return objs
         except Exception as e:
             await self.session.rollback()
-            logger.error("entity_creation_failed", entity=self.model.__name__, error=str(e), batch=True)
+            logger.error("Failed to create entity", entity=self.model.__name__, error=str(e), batch=True)
             raise
