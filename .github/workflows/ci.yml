@@ -27,11 +27,9 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Run linting (opcional)
+      - name: Run linting
         run: |
-          poetry run python -c "import app.main; print('✅ Import OK')"
-        continue-on-error: true
+          poetry run ruff check .
 
       - name: Build Docker image (validação)
         run: docker build -t sports-program .
-

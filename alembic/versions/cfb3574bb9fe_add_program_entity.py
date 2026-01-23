@@ -27,7 +27,12 @@ def upgrade() -> None:
     sa.Column('slack_channel', sa.String(), nullable=False),
     sa.Column('start_date', sa.DateTime(timezone=True), nullable=False),
     sa.Column('end_date', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.Column(
+        'created_at',
+        sa.DateTime(timezone=True),
+        server_default=sa.text('(CURRENT_TIMESTAMP)'),
+        nullable=False
+    ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
