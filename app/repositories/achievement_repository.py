@@ -1,7 +1,8 @@
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy import select, update, exists as sql_exists
+from sqlalchemy import exists as sql_exists
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -58,14 +59,14 @@ class AchievementRepository(BaseRepository[Achievement]):
         result = await self.session.execute(stmt)
         await self.session.commit()
         return result.rowcount
-    
+
     async def user_has_achievement(
-        self, 
-        user_id: int, 
-        program_id: int, 
+        self,
+        user_id: int,
+        program_id: int,
         cycle_reference: str
     ) -> bool:
-    
+
         stmt = select(
             sql_exists().where(
                 Achievement.user_id == user_id,
@@ -75,4 +76,4 @@ class AchievementRepository(BaseRepository[Achievement]):
     )
         result = await self.session.execute(stmt)
         return result.scalar()
-    
+

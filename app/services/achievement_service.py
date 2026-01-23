@@ -1,5 +1,5 @@
 import logging
-from typing import Annotated, TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends
 
@@ -17,8 +17,8 @@ from app.schemas.achievement import (
     AchievementBatchCreate,
     AchievementBatchResponse,
     AchievementCreate,
-    NotifyResponse,
     AchievementCreateResponse,
+    NotifyResponse,
 )
 
 if TYPE_CHECKING:
@@ -74,13 +74,13 @@ class AchievementService:
         achievement_create: AchievementCreate,
         program_id: int,
         user_id: int,
-    ) -> AchievementCreateResponse | None: 
+    ) -> AchievementCreateResponse | None:
         already_exists = await self.achievement_repo.user_has_achievement(
             user_id=user_id,
             program_id=program_id,
             cycle_reference=achievement_create.cycle_reference
         )
-        
+
         if already_exists:
             logging.info(
                 f"Achievement already exists - "
@@ -88,7 +88,7 @@ class AchievementService:
                 f"cycle={achievement_create.cycle_reference}"
             )
             return None
-        
+
         db_achievement = Achievement(
             user_id=user_id,
             program_id=program_id,

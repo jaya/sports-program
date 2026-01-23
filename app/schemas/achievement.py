@@ -50,5 +50,5 @@ class AchievementCreateResponse(BaseModel):
     cycle_reference: str
     is_notified: bool
     created_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)

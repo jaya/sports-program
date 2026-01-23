@@ -87,12 +87,10 @@ class ActivityService:
             month=db_activity.performed_at.month,
         )
 
-        if self._is_previous_month(performed_at, datetime.now()) and (total_month >= GOAL_ACTIVITIES):
+        is_prev = self._is_previous_month(performed_at, datetime.now())
+        if is_prev and (total_month >= GOAL_ACTIVITIES):
             await self._generate_retroactive_achievement(
-                user_id,
-                program_found.id,
-                program_found,
-                performed_at
+                user_id, program_found.id, program_found, performed_at
             )
 
         return ActivitySummaryResponse(id=db_activity.id, count_month=total_month)
@@ -120,8 +118,7 @@ class ActivityService:
             activity_update.performed_at is not None
             and activity_update.performed_at != db_activity.performed_at
         ):
-            self._validate_performed_at(
-                program_found, activity_update.performed_at)
+            self._validate_performed_at(program_found, activity_update.performed_at)
             existing_activity = await self.activity_repo.check_activity_same_day(
                 program_found.id, user_id, activity_update.performed_at.date(), id
             )
@@ -242,8 +239,7 @@ class ActivityService:
             performed_at = datetime.now()
 
         if performed_at > datetime.now():
-            raise BusinessRuleViolationError(
-                "Activity date cannot be in the future")
+            raise BusinessRuleViolationError("Activity date cannot be in the future")
 
         start_date = program_found.start_date
         if performed_at.tzinfo is None and start_date.tzinfo is not None:
@@ -271,13 +267,8 @@ class ActivityService:
         return performed_at
 
     async def _generate_retroactive_achievement(
-        self,
-        user_id: int,
-        program_id: int,
-        program,
-        performed_at: datetime
+        self, user_id: int, program_id: int, program, performed_at: datetime
     ) -> None:
-
         try:
             cycle_reference = f"{performed_at.year}-{performed_at.month:02d}"
             achievement_create = AchievementCreate(cycle_reference=cycle_reference)
@@ -293,5 +284,9 @@ class ActivityService:
                 f"for program {program.name} and cycle {cycle_reference}: {e}"
             )
 
-    def _is_previous_month(self, activity_date: datetime, current_date: datetime) -> bool:
-        return (activity_date.year * 12 + activity_date.month) == (current_date.year * 12 + current_date.month - 1)
+    def _is_previous_month(
+        self, activity_date: datetime, current_date: datetime
+    ) -> bool:
+        return (activity_date.year * 12 + activity_date.month) == (
+            current_date.year * 12 + current_date.month - 1
+        )
