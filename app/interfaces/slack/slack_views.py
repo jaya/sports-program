@@ -254,7 +254,8 @@ def help_blocks():
             "text": {
                 "type": "mrkdwn",
                 "text": (
-                    f"Hi there :wave: I'm the {settings.BOT_NAME}. I'm here to help you "
+                    f"Hi there :wave: I'm the {settings.BOT_NAME}. "
+                    f"I'm here to help you "
                     "manage programs and log your physical activities."
                 ),
             },
@@ -299,7 +300,8 @@ def help_blocks():
                     "me in a message with the description."
                     "\n\n:calendar: *Dates*: By default, it logs for *today*. "
                     "To log for a specific date, use the `@DD/MM` format."
-                    f"\n\nExample: `@{settings.BOT_NAME} 5km run @20/01` (logs for Jan 20th)"
+                    f"\n\nExample: `@{settings.BOT_NAME} "
+                    "5km run @20/01` (logs for Jan 20th)"
                     "\n:camera_with_flash: _Tip: If you attach a "
                     "photo to the message, it will be saved as evidence!\n\n"
                 ),

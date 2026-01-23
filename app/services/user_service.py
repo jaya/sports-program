@@ -1,8 +1,14 @@
+from typing import Annotated
+
 import structlog
 from fastapi import Depends
 
 from app.core.slack import slack_app
-from app.exceptions.business import DatabaseError, DuplicateEntityError, ExternalServiceError
+from app.exceptions.business import (
+    DatabaseError,
+    DuplicateEntityError,
+    ExternalServiceError,
+)
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.user_schema import UserCreate
@@ -12,7 +18,7 @@ logger = structlog.get_logger()
 class UserService:
     def __init__(
         self,
-        user_repo: UserRepository = Depends(),
+        user_repo: Annotated[UserRepository, Depends()],
     ):
         self.user_repo = user_repo
 

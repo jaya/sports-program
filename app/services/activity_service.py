@@ -1,5 +1,6 @@
 import structlog
 from datetime import datetime
+from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,9 +31,9 @@ logger = structlog.get_logger()
 class ActivityService:
     def __init__(
         self,
-        db: AsyncSession = Depends(get_db),
-        user_service: UserService = Depends(),
-        program_service: ProgramService = Depends()
+        db: Annotated[AsyncSession, Depends(get_db)],
+        user_service: Annotated[UserService, Depends()],
+        program_service: Annotated[ProgramService, Depends()]
     ):
         self.db = db
         self.user_service = user_service
@@ -58,7 +59,8 @@ class ActivityService:
         )
         if existing_activity:
             raise BusinessRuleViolationError(
-                f"An activity is already registered for the user on this date ({performed_at.date()})."
+                "An activity is already registered for the "
+                f"user on this date ({performed_at.date()})."
             )
 
         db_activity = Activity(
@@ -114,7 +116,8 @@ class ActivityService:
             )
             if existing_activity:
                 raise BusinessRuleViolationError(
-                    f"An activity is already registered for the user on this date ({activity_update.performed_at.date()})."
+                    f"An activity is already registered for the user "
+                    f"on this date ({activity_update.performed_at.date()})."
                 )
 
         update_data = activity_update.model_dump(exclude_unset=True)
@@ -213,8 +216,10 @@ class ActivityService:
 
         if len(program_found) > 1:
             raise BusinessRuleViolationError(
-                f"There are {len(program_found)} programs linked to the channel '{program_slack_channel}'. "
-                "It is not possible to determine in which one to register the activity automatically."
+                f"There are {len(program_found)} programs "
+                f"linked to the channel '{program_slack_channel}'. "
+                "It is not possible to determine in which one "
+                "to register the activity automatically."
             )
 
         return program_found[0]
