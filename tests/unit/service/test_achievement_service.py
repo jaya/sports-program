@@ -11,6 +11,7 @@ from app.models.achievement import Achievement
 from app.models.program import Program
 from app.models.user import User
 from app.repositories.achievement_repository import AchievementRepository
+from app.repositories.activity_repository import ActivityRepository
 from app.repositories.program_repository import ProgramRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.achievement import (
@@ -18,7 +19,6 @@ from app.schemas.achievement import (
     AchievementBatchResponse,
     AchievementCreate,
 )
-from app.repositories.activity_repository import ActivityRepository
 from app.services.achievement_service import AchievementService
 
 
