@@ -1,7 +1,7 @@
-import structlog
 from datetime import datetime
 from typing import Annotated
 
+import structlog
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,12 +28,13 @@ GOAL_ACTIVITIES = 12
 
 logger = structlog.get_logger()
 
+
 class ActivityService:
     def __init__(
         self,
         db: Annotated[AsyncSession, Depends(get_db)],
         user_service: Annotated[UserService, Depends()],
-        program_service: Annotated[ProgramService, Depends()]
+        program_service: Annotated[ProgramService, Depends()],
     ):
         self.db = db
         self.user_service = user_service
@@ -46,6 +47,12 @@ class ActivityService:
         program_slack_channel: str,
         slack_id: str,
     ) -> ActivitySummaryResponse:
+        logger.info(
+            "Starting activity creation for program",
+            program_slack_channel=program_slack_channel,
+            activity_description=activity_create.description,
+        )
+
         user_id = await self._validate_user(slack_id)
         program_found = await self._validate_program_by_slack_channel(
             program_slack_channel
@@ -73,9 +80,17 @@ class ActivityService:
 
         try:
             await self.activity_repo.create(db_activity)
-            logger.info("Activity registered successfully", user_id=user_id, program_id=program_found.id, activity_id=db_activity.id)
+            logger.info(
+                "Activity created",
+                program_id=program_found.id,
+                activity_id=db_activity.id,
+            )
         except Exception as e:
-            logger.error("Failed to create entity", entity="Activity", user_id=user_id, error=str(e))
+            logger.exception(
+                "Database error while creating activity",
+                program_id=program_found.id,
+                entity="Activity",
+            )
             raise DatabaseError() from e
 
         total_month = await self.activity_repo.count_monthly(
@@ -92,6 +107,10 @@ class ActivityService:
         id: int,
         slack_id: str,
     ) -> ActivitySummaryResponse:
+        logger.info(
+            "Starting activity update",
+            activity_id=id,
+        )
         user_found = await self.user_service.find_by_slack_id(slack_id)
         if not user_found:
             raise EntityNotFoundError("User", slack_id)
@@ -109,8 +128,7 @@ class ActivityService:
             activity_update.performed_at is not None
             and activity_update.performed_at != db_activity.performed_at
         ):
-            self._validate_performed_at(
-                program_found, activity_update.performed_at)
+            self._validate_performed_at(program_found, activity_update.performed_at)
             existing_activity = await self.activity_repo.check_activity_same_day(
                 program_found.id, user_id, activity_update.performed_at.date(), id
             )
@@ -127,10 +145,17 @@ class ActivityService:
         try:
             await self.db.commit()
             await self.db.refresh(db_activity)
-            logger.info("Activity updated successfully", user_id=user_id, activity_id=db_activity.id)
+            logger.info(
+                "Activity updated successfully",
+                activity_id=db_activity.id,
+            )
         except Exception as e:
             await self.db.rollback()
-            logger.error("Failed to update entity", entity="Activity", activity_id=id, error=str(e))
+            logger.exception(
+                "Database error while updating activity",
+                entity="Activity",
+                activity_id=id,
+            )
             raise DatabaseError() from e
 
         total_month = await self.activity_repo.count_monthly(
@@ -142,6 +167,10 @@ class ActivityService:
         return ActivitySummaryResponse(id=db_activity.id, count_month=total_month)
 
     async def delete(self, id: int, slack_id: str) -> None:
+        logger.info(
+            "Starting activity deletion",
+            activity_id=id,
+        )
         activity = await self.activity_repo.find_by_id_and_slack_id(id, slack_id)
         if not activity:
             raise EntityNotFoundError("Activity", id)
@@ -154,10 +183,14 @@ class ActivityService:
         try:
             await self.db.delete(activity)
             await self.db.commit()
-            logger.info("Activity deleted successfully", activity_id=id, slack_id=slack_id)
+            logger.info("Activity deleted successfully", activity_id=id)
         except Exception as e:
             await self.db.rollback()
-            logger.error("Failed to delete entity", entity="Activity", activity_id=id, error=str(e))
+            logger.exception(
+                "Database error while deleting activity",
+                entity="Activity",
+                activity_id=id,
+            )
             raise DatabaseError() from e
 
     async def find_by_id(self, id: int, slack_id: str) -> Activity:
@@ -191,6 +224,11 @@ class ActivityService:
     async def find_all_user_by_program_completed(
         self, program_name: str, cycle_reference: str
     ) -> list[int]:
+        logger.info(
+            "Checking completed users for program cycle",
+            program=program_name,
+            cycle=cycle_reference,
+        )
         program_found = await self.program_service.find_by_name(program_name)
         if not program_found:
             raise EntityNotFoundError("Program", program_name)
@@ -212,7 +250,11 @@ class ActivityService:
                 )
                 return new_user.id
             except Exception as e:
-                logger.warning("User validation failed", slack_id=slack_id, error=str(e))
+                logger.exception(
+                    "Failed to validate or create user from Slack",
+                    slack_id=slack_id,
+                    error=str(e),
+                )
                 raise
 
     async def _validate_program_by_slack_channel(self, program_slack_channel: str):
@@ -239,8 +281,7 @@ class ActivityService:
             performed_at = datetime.now()
 
         if performed_at > datetime.now():
-            raise BusinessRuleViolationError(
-                "Activity date cannot be in the future")
+            raise BusinessRuleViolationError("Activity date cannot be in the future")
 
         start_date = program_found.start_date
         if performed_at.tzinfo is None and start_date.tzinfo is not None:
