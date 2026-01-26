@@ -12,9 +12,9 @@ from app.exceptions.business import (
 from app.models.activity import Activity
 from app.models.program import Program
 from app.models.user import User
+from app.repositories.achievement_repository import AchievementRepository
 from app.repositories.activity_repository import ActivityRepository
 from app.schemas.activity_schema import ActivityCreate, ActivityUpdate
-from app.services.achievement_service import AchievementService
 from app.services.activity_service import ActivityService
 from app.services.program_service import ProgramService
 from app.services.user_service import UserService
@@ -36,22 +36,30 @@ def mock_program_service():
 
 
 @pytest.fixture
-def mock_achievement_service():
-    return AsyncMock(spec=AchievementService)
+def mock_activity_repo():
+    return AsyncMock(spec=ActivityRepository)
+
+
+@pytest.fixture
+def mock_achievement_repo():
+    return AsyncMock(spec=AchievementRepository)
 
 
 @pytest.fixture
 def activity_service(
-    mock_db, mock_user_service, mock_program_service, mock_achievement_service
+    mock_db,
+    mock_user_service,
+    mock_program_service,
+    mock_activity_repo,
+    mock_achievement_repo,
 ):
-    service = ActivityService(
+    return ActivityService(
         db=mock_db,
         user_service=mock_user_service,
         program_service=mock_program_service,
-        achievement_service=mock_achievement_service,
+        activity_repo=mock_activity_repo,
+        achievement_repo=mock_achievement_repo,
     )
-    service.activity_repo = AsyncMock(spec=ActivityRepository)
-    return service
 
 
 @pytest.fixture
@@ -80,20 +88,21 @@ def setup_mocks(
     activity_service,
     mock_user_service,
     mock_program_service,
+    mock_activity_repo,
+    mock_achievement_repo,
     user,
     program,
-    mock_achievement_service,
 ):
     mock_user_service.find_by_slack_id.return_value = user
     mock_program_service.find_by_slack_channel.return_value = [program]
     mock_program_service.find_by_id.return_value = program
     mock_program_service.find_by_name.return_value = program
 
-    activity_service.activity_repo.check_activity_same_day.return_value = None
-    activity_service.activity_repo.count_monthly.return_value = 5
-    mock_achievement_service.create.return_value = None
+    mock_activity_repo.check_activity_same_day.return_value = None
+    mock_activity_repo.count_monthly.return_value = 5
+    mock_achievement_repo.user_has_achievement.return_value = False
 
-    activity_service.activity_repo.create.side_effect = lambda act: setattr(
+    mock_activity_repo.create.side_effect = lambda act: setattr(
         act, "id", 1
     )
     return {"user": user, "program": program}
@@ -108,15 +117,17 @@ async def _assert_error(coroutine, expected_error, match=None):
 
 @pytest.mark.anyio
 class TestActivityCreate:
-    async def test_create_activity_success(self, activity_service, setup_mocks, today):
+    async def test_create_activity_success(
+        self, activity_service, setup_mocks, today, mock_activity_repo
+    ):
         activity_create = ActivityCreate(
             description="Run", performed_at=today, evidence_url="https://evidence.com"
         )
         result = await activity_service.create(activity_create, "C123", "U123")
 
         assert result.count_month == 5
-        activity_service.activity_repo.create.assert_called_once()
-        activity_service.activity_repo.count_monthly.assert_called_once()
+        mock_activity_repo.create.assert_called_once()
+        mock_activity_repo.count_monthly.assert_called_once()
 
     async def test_create_activity_auto_create_user(
         self, activity_service, mock_user_service, setup_mocks, today
@@ -128,7 +139,8 @@ class TestActivityCreate:
         )
 
         await activity_service.create(
-            ActivityCreate(description="Run", performed_at=today), "C123", "U_NEW"
+            ActivityCreate(description="Run",
+                           performed_at=today), "C123", "U_NEW"
         )
         mock_user_service.create.assert_called_once()
 
@@ -163,9 +175,9 @@ class TestActivityCreate:
         )
 
     async def test_create_fails_when_activity_already_exists(
-        self, activity_service, setup_mocks, today
+        self, activity_service, setup_mocks, today, mock_activity_repo
     ):
-        activity_service.activity_repo.check_activity_same_day.return_value = Activity(
+        mock_activity_repo.check_activity_same_day.return_value = Activity(
             id=99
         )
         await _assert_error(
@@ -189,7 +201,8 @@ class TestActivityCreate:
         invalid_date = today + delta
 
         async def call_create():
-            activity_create = ActivityCreate(description="R", performed_at=invalid_date)
+            activity_create = ActivityCreate(
+                description="R", performed_at=invalid_date)
             await activity_service.create(activity_create, "C", "U")
 
         await _assert_error(
@@ -199,9 +212,9 @@ class TestActivityCreate:
         )
 
     async def test_create_fails_on_database_error(
-        self, activity_service, setup_mocks, today
+        self, activity_service, setup_mocks, today, mock_activity_repo
     ):
-        activity_service.activity_repo.create.side_effect = Exception("DB Fail")
+        mock_activity_repo.create.side_effect = Exception("DB Fail")
         await _assert_error(
             activity_service.create(
                 ActivityCreate(description="R", performed_at=today), "C", "U"
@@ -212,9 +225,11 @@ class TestActivityCreate:
 
 @pytest.mark.anyio
 class TestActivityUpdate:
-    async def test_update_activity_success(self, activity_service, setup_mocks, today):
+    async def test_update_activity_success(
+        self, activity_service, setup_mocks, today, mock_activity_repo
+    ):
         existing = Activity(id=1, program_id=1, performed_at=today, user_id=1)
-        activity_service.activity_repo.find_by_id_and_slack_id.return_value = existing
+        mock_activity_repo.find_by_id_and_slack_id.return_value = existing
 
         result = await activity_service.update(
             ActivityUpdate(description="Up"), 1, "U123"
@@ -226,14 +241,16 @@ class TestActivityUpdate:
     @pytest.mark.parametrize(
         "mock_target, mock_value, expected_error, match",
         [
-            ("mock_user_service.find_by_slack_id", None, EntityNotFoundError, "User"),
+            ("mock_user_service.find_by_slack_id",
+             None, EntityNotFoundError, "User"),
             (
-                "activity_service.activity_repo.find_by_id_and_slack_id",
+                "mock_activity_repo.find_by_id_and_slack_id",
                 None,
                 EntityNotFoundError,
                 "Activity",
             ),
-            ("mock_program_service.find_by_id", None, EntityNotFoundError, "Program"),
+            ("mock_program_service.find_by_id",
+             None, EntityNotFoundError, "Program"),
         ],
     )
     async def test_update_fails_on_entity_not_found(
@@ -241,6 +258,7 @@ class TestActivityUpdate:
         activity_service,
         mock_user_service,
         mock_program_service,
+        mock_activity_repo,
         setup_mocks,
         mock_target,
         mock_value,
@@ -248,7 +266,7 @@ class TestActivityUpdate:
         match,
     ):
         if "activity_repo" in mock_target:
-            activity_service.activity_repo.find_by_id_and_slack_id.return_value = (
+            mock_activity_repo.find_by_id_and_slack_id.return_value = (
                 mock_value
             )
         else:
@@ -262,17 +280,18 @@ class TestActivityUpdate:
         )
 
     async def test_update_fails_when_date_conflict(
-        self, activity_service, setup_mocks, today
+        self, activity_service, setup_mocks, today, mock_activity_repo
     ):
-        activity_service.activity_repo.find_by_id_and_slack_id.return_value = Activity(
+        mock_activity_repo.find_by_id_and_slack_id.return_value = Activity(
             id=1, program_id=1, performed_at=today - timedelta(days=1), user_id=1
         )
-        activity_service.activity_repo.check_activity_same_day.return_value = Activity(
+        mock_activity_repo.check_activity_same_day.return_value = Activity(
             id=99
         )
 
         await _assert_error(
-            activity_service.update(ActivityUpdate(performed_at=today), 1, "U"),
+            activity_service.update(
+                ActivityUpdate(performed_at=today), 1, "U"),
             BusinessRuleViolationError,
             "already registered",
         )
@@ -280,9 +299,11 @@ class TestActivityUpdate:
 
 @pytest.mark.anyio
 class TestActivityDelete:
-    async def test_delete_activity_success(self, activity_service, setup_mocks, today):
+    async def test_delete_activity_success(
+        self, activity_service, setup_mocks, today, mock_activity_repo
+    ):
         existing = Activity(id=1, performed_at=today, user_id=1)
-        activity_service.activity_repo.find_by_id_and_slack_id.return_value = existing
+        mock_activity_repo.find_by_id_and_slack_id.return_value = existing
 
         await activity_service.delete(1, "U123")
 
@@ -301,9 +322,15 @@ class TestActivityDelete:
         ],
     )
     async def test_delete_fails_on_validation(
-        self, activity_service, setup_mocks, performed_at, expected_error, match
+        self,
+        activity_service,
+        setup_mocks,
+        performed_at,
+        expected_error,
+        match,
+        mock_activity_repo,
     ):
-        activity_service.activity_repo.find_by_id_and_slack_id.return_value = (
+        mock_activity_repo.find_by_id_and_slack_id.return_value = (
             Activity(id=1, performed_at=performed_at) if performed_at else None
         )
         await _assert_error(activity_service.delete(1, "U"), expected_error, match)
@@ -311,10 +338,13 @@ class TestActivityDelete:
 
 @pytest.mark.anyio
 class TestActivityQuery:
-    async def test_query_methods_success(self, activity_service, setup_mocks):
-        repo = activity_service.activity_repo
+    async def test_query_methods_success(
+        self, activity_service, setup_mocks, mock_activity_repo
+    ):
+        repo = mock_activity_repo
         repo.find_by_user_id_and_date.return_value = [Activity(id=1)]
-        repo.find_by_user_id_and_slack_channel_and_date.return_value = [Activity(id=2)]
+        repo.find_by_user_id_and_slack_channel_and_date.return_value = [
+            Activity(id=2)]
         repo.find_users_with_completed_program.return_value = [1]
         repo.find_by_id_and_slack_id.return_value = Activity(id=3)
 
@@ -364,6 +394,7 @@ class TestActivityQuery:
         self,
         activity_service,
         setup_mocks,
+        mock_activity_repo,
         method,
         args,
         mock_target,
@@ -371,7 +402,7 @@ class TestActivityQuery:
         match,
     ):
         if "activity_repo" in mock_target:
-            activity_service.activity_repo.find_by_id_and_slack_id.return_value = None
+            mock_activity_repo.find_by_id_and_slack_id.return_value = None
         elif "user_service" in mock_target:
             activity_service.user_service.find_by_slack_id.return_value = None
         else:
@@ -386,7 +417,7 @@ class TestActivityQuery:
 class TestActivityTimezone:
     @pytest.mark.parametrize("tz_offset", [0, -3, 5])
     async def test_timezone_handling(
-        self, activity_service, setup_mocks, today, tz_offset
+        self, activity_service, setup_mocks, today, tz_offset, mock_activity_repo
     ):
         tz = timezone(timedelta(hours=tz_offset))
         performed_at = today.replace(tzinfo=tz)
@@ -400,9 +431,10 @@ class TestActivityTimezone:
         )
 
         await activity_service.create(
-            ActivityCreate(description="R", performed_at=performed_at), "C", "U"
+            ActivityCreate(description="R",
+                           performed_at=performed_at), "C", "U"
         )
-        created = activity_service.activity_repo.create.call_args[0][0]
+        created = mock_activity_repo.create.call_args[0][0]
         assert created.performed_at.tzinfo == tz
 
 
@@ -413,7 +445,8 @@ class TestCreateRetroactiveAchievement:
         activity_service,
         mock_user_service,
         mock_program_service,
-        mock_achievement_service,
+        mock_activity_repo,
+        mock_achievement_repo,
         user,
     ):
         with freeze_time("2026-01-20"):
@@ -426,14 +459,16 @@ class TestCreateRetroactiveAchievement:
 
             # Setup mocks
             mock_user_service.find_by_slack_id.return_value = user
-            mock_program_service.find_by_slack_channel.return_value = [program_2025]
-            activity_service.activity_repo.check_activity_same_day.return_value = None
-            activity_service.activity_repo.count_monthly.return_value = 12
+            mock_program_service.find_by_slack_channel.return_value = [
+                program_2025]
+            mock_activity_repo.check_activity_same_day.return_value = None
+            mock_activity_repo.count_monthly.return_value = 12
+            mock_achievement_repo.user_has_achievement.return_value = False
 
             async def assign_id(activity):
                 activity.id = 1
 
-            activity_service.activity_repo.create.side_effect = assign_id
+            mock_activity_repo.create.side_effect = assign_id
 
             previous_month_date = datetime(2025, 12, 15)
 
@@ -447,19 +482,21 @@ class TestCreateRetroactiveAchievement:
 
             assert result.count_month == 12
 
-            mock_achievement_service.create.assert_called_once()
+            mock_achievement_repo.create.assert_called_once()
 
-            call_args = mock_achievement_service.create.call_args
-            assert call_args[1]["user_id"] == 1
-            assert call_args[1]["program_id"] == 1
-            assert call_args[1]["achievement_create"].cycle_reference == "2025-12"
+            call_args = mock_achievement_repo.create.call_args
+            achievement = call_args[0][0]  # First positional argument
+            assert achievement.user_id == 1
+            assert achievement.program_id == 1
+            assert achievement.cycle_reference == "2025-12"
 
     async def test_create_activity_does_not_trigger_achievement_when_only_11_activities(
         self,
         activity_service,
         mock_user_service,
         mock_program_service,
-        mock_achievement_service,
+        mock_activity_repo,
+        mock_achievement_repo,
         user,
     ):
         with freeze_time("2026-01-20"):
@@ -471,14 +508,15 @@ class TestCreateRetroactiveAchievement:
             )
 
             mock_user_service.find_by_slack_id.return_value = user
-            mock_program_service.find_by_slack_channel.return_value = [program_2025]
-            activity_service.activity_repo.check_activity_same_day.return_value = None
-            activity_service.activity_repo.count_monthly.return_value = 11
+            mock_program_service.find_by_slack_channel.return_value = [
+                program_2025]
+            mock_activity_repo.check_activity_same_day.return_value = None
+            mock_activity_repo.count_monthly.return_value = 11
 
             async def assign_id(activity):
                 activity.id = 1
 
-            activity_service.activity_repo.create.side_effect = assign_id
+            mock_activity_repo.create.side_effect = assign_id
 
             previous_month_date = datetime(2025, 12, 15)
 
@@ -490,14 +528,15 @@ class TestCreateRetroactiveAchievement:
 
             await activity_service.create(activity_create, "C123", "U123")
 
-            mock_achievement_service.create.assert_not_called()
+            mock_achievement_repo.create.assert_not_called()
 
     async def test_create_activity_does_not_trigger_achievement_when_current_month(
         self,
         activity_service,
         mock_user_service,
         mock_program_service,
-        mock_achievement_service,
+        mock_activity_repo,
+        mock_achievement_repo,
         user,
     ):
         with freeze_time("2026-01-20"):
@@ -509,14 +548,15 @@ class TestCreateRetroactiveAchievement:
             )
 
             mock_user_service.find_by_slack_id.return_value = user
-            mock_program_service.find_by_slack_channel.return_value = [program_2026]
-            activity_service.activity_repo.check_activity_same_day.return_value = None
-            activity_service.activity_repo.count_monthly.return_value = 12
+            mock_program_service.find_by_slack_channel.return_value = [
+                program_2026]
+            mock_activity_repo.check_activity_same_day.return_value = None
+            mock_activity_repo.count_monthly.return_value = 12
 
             async def assign_id(activity):
                 activity.id = 1
 
-            activity_service.activity_repo.create.side_effect = assign_id
+            mock_activity_repo.create.side_effect = assign_id
 
             current_month_date = datetime(2026, 1, 15)
 
@@ -528,4 +568,92 @@ class TestCreateRetroactiveAchievement:
 
             await activity_service.create(activity_create, "C123", "U123")
 
-            mock_achievement_service.create.assert_not_called()
+            mock_achievement_repo.create.assert_not_called()
+
+    async def test_create_activity_does_not_duplicate_achievement_when_already_exists(
+        self,
+        activity_service,
+        mock_user_service,
+        mock_program_service,
+        mock_activity_repo,
+        mock_achievement_repo,
+        user,
+    ):
+        with freeze_time("2026-01-20"):
+            program_2025 = Program(
+                id=1,
+                slack_channel="C123",
+                start_date=datetime(2025, 1, 1),
+                end_date=datetime(2026, 12, 31),
+            )
+
+            mock_user_service.find_by_slack_id.return_value = user
+            mock_program_service.find_by_slack_channel.return_value = [
+                program_2025]
+            mock_activity_repo.check_activity_same_day.return_value = None
+            mock_activity_repo.count_monthly.return_value = 12
+            mock_achievement_repo.user_has_achievement.return_value = True
+
+            async def assign_id(activity):
+                activity.id = 1
+
+            mock_activity_repo.create.side_effect = assign_id
+
+            previous_month_date = datetime(2025, 12, 15)
+
+            activity_create = ActivityCreate(
+                description="12ª Activity",
+                performed_at=previous_month_date,
+                evidence_url="http://test.com",
+            )
+
+            result = await activity_service.create(activity_create, "C123", "U123")
+
+            assert result.count_month == 12
+            mock_achievement_repo.user_has_achievement.assert_called_once()
+            mock_achievement_repo.create.assert_not_called()
+
+    async def test_create_activity_succeeds_even_when_achievement_creation_fails(
+        self,
+        activity_service,
+        mock_user_service,
+        mock_program_service,
+        mock_activity_repo,
+        mock_achievement_repo,
+        user,
+    ):
+        with freeze_time("2026-01-20"):
+            program_2025 = Program(
+                id=1,
+                name="Test Program",
+                slack_channel="C123",
+                start_date=datetime(2025, 1, 1),
+                end_date=datetime(2026, 12, 31),
+            )
+
+            mock_user_service.find_by_slack_id.return_value = user
+            mock_program_service.find_by_slack_channel.return_value = [
+                program_2025]
+            mock_activity_repo.check_activity_same_day.return_value = None
+            mock_activity_repo.count_monthly.return_value = 12
+            mock_achievement_repo.user_has_achievement.return_value = False
+            mock_achievement_repo.create.side_effect = Exception("DB Error")
+
+            async def assign_id(activity):
+                activity.id = 1
+
+            mock_activity_repo.create.side_effect = assign_id
+
+            previous_month_date = datetime(2025, 12, 15)
+
+            activity_create = ActivityCreate(
+                description="12ª Activity",
+                performed_at=previous_month_date,
+                evidence_url="http://test.com",
+            )
+
+            # Should not raise exception, activity creation should succeed
+            result = await activity_service.create(activity_create, "C123", "U123")
+
+            assert result.count_month == 12
+            assert result.id == 1
