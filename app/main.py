@@ -1,4 +1,3 @@
-import time
 import structlog
 from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI, Request, status
@@ -25,10 +24,11 @@ from app.exceptions.business import (
 logger = structlog.get_logger()
 setup_logging()
 
+
 def setup_exception_handlers(app: FastAPI):
     @app.exception_handler(EntityNotFoundError)
     async def not_found_handler(request: Request, exc: EntityNotFoundError):
-        logger.warning("Entity not found", entity=exc.message)
+        logger.warning("Entity not found", detail=exc.message)
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND, content={"detail": exc.message}
         )
@@ -41,7 +41,9 @@ def setup_exception_handlers(app: FastAPI):
         )
 
     @app.exception_handler(BusinessRuleViolationError)
-    async def business_rule_violation_handler(request: Request, exc: BusinessRuleViolationError):
+    async def business_rule_violation_handler(
+        request: Request, exc: BusinessRuleViolationError
+    ):
         logger.warning("Business rule violation", detail=exc.message)
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -66,14 +68,18 @@ def setup_exception_handlers(app: FastAPI):
 
     @app.exception_handler(BusinessException)
     async def general_business_handler(request: Request, exc: BusinessException):
-        logger.warning("Business exception occurred", detail=exc.message)
+        logger.warning("Business exception occurred", detail=str(exc))
         return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"detail": exc.message}
+            status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)}
         )
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):
-        logger.exception("Unhandled server error occurred", method=request.method, path=request.url.path)
+        logger.exception(
+            "Unhandled server error occurred",
+            method=request.method,
+            path=request.url.path,
+        )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "An unexpected error occurred."},

@@ -1,5 +1,4 @@
 import structlog
-
 from slack_bolt import Ack, BoltContext
 
 from app.core.slack import slack_app
@@ -35,12 +34,22 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
     Handle the /create-program command.
     """
     await ack()
-    logger.info("Slack command for program creation received", user_id=command.get("user_id"), channel_id=command.get("channel_id"), program_name=command.get("text"))
+
     channel_id = command.get("channel_id")
     user_id = command.get("user_id")
     program_name = command.get("text")
 
+    logger.info(
+        "Slack command for program creation received",
+        channel_id=channel_id,
+        program_name=program_name,
+    )
+
     if not program_name:
+        logger.info(
+            "Program creation aborted due to missing program name",
+            channel_id=channel_id,
+        )
         blocks = error_blocks(
             "Please, provide a program name. Example: `/create-program <program-name>`"
         )
@@ -62,7 +71,11 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
             program.name, program.slack_channel, program.start_date, program.end_date
         )
     except Exception as e:
-        logger.error("Failed to create program from Slack", user_id=user_id, program_name=program_name, error=str(e))
+        logger.error(
+            "Failed to create program from Slack",
+            program_name=program_name,
+            error=str(e),
+        )
         blocks = error_blocks(str(e))
         await context.client.chat_postEphemeral(
             channel=channel_id,
@@ -83,10 +96,15 @@ async def handle_list_programs(ack: Ack, command: dict, context: BoltContext):
     Handle the /list-programs command.
     """
     await ack()
-    logger.info("Slack command for program list received", user_id=command.get("user_id"), channel_id=command.get("channel_id"))
     db = context["db"]
     channel_id = command.get("channel_id")
     user_id = command.get("user_id")
+
+    logger.info(
+        "Slack command for program list received",
+        channel_id=channel_id,
+    )
+
     try:
         service = get_program_service(db)
         programs = await list_programs_action(service)
@@ -112,13 +130,25 @@ async def handle_list_programs(ack: Ack, command: dict, context: BoltContext):
 @slack_app.command("/list-activities")
 async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
     await ack()
-    logger.info("Slack command for activity list received", user_id=command.get("user_id"), channel_id=command.get("channel_id"), text=command.get("text"))
-    user_id = command.get("user_id")
+
     channel_id = command.get("channel_id")
+    user_id = command.get("user_id")
     text = command.get("text", "")
+
+    logger.info(
+        "Slack command for activity list received",
+        channel_id=channel_id,
+        text=text,
+    )
+
     try:
         reference_date = parse_reference_date(text)
     except Exception:
+        logger.info(
+            "Invalid reference date received from Slack command",
+            channel_id=channel_id,
+            text=text,
+        )
         blocks = invalid_reference_date_blocks()
         await context.client.chat_postEphemeral(
             channel=channel_id,
@@ -146,7 +176,7 @@ async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
         )
 
     except Exception as e:
-        logger.error("Failed to list activities", user_id=user_id, error=str(e))
+        logger.error("Failed to list activities", channel=channel_id, error=str(e))
         blocks = error_blocks(str(e))
         await context.client.chat_postEphemeral(
             channel=channel_id,
@@ -159,12 +189,13 @@ async def handle_list_activities(ack: Ack, command: dict, context: BoltContext):
 
 @slack_app.event("app_mention")
 async def handle_app_mention(event: dict, context: BoltContext):
-    logger.info("Bot mention received", user_id=event.get("user"), channel_id=event.get("channel"), text=event.get("text"))
     text = event.get("text", "")
     user_id = event.get("user")
     channel_id = event.get("channel")
     evidence_url = None
     files = event.get("files", [{}])
+
+    logger.info("Bot mention received", channel_id=channel_id, text=text)
 
     if len(files) > 0:
         evidence_url = files[0].get("url_private")
@@ -172,6 +203,7 @@ async def handle_app_mention(event: dict, context: BoltContext):
     description, activity_date = parse_activity_date(text)
 
     if description.lower() == "help":
+        logger.info("Help requested via app mention", channel_id=channel_id)
         await context.client.chat_postEphemeral(
             channel=channel_id,
             user=user_id,
@@ -181,6 +213,11 @@ async def handle_app_mention(event: dict, context: BoltContext):
         return
 
     if activity_date is None:
+        logger.info(
+            "Invalid activity date received via app mention",
+            channel_id=channel_id,
+            text=text,
+        )
         blocks = invalid_date_blocks()
         await context.client.chat_postEphemeral(
             channel=channel_id,
@@ -203,6 +240,12 @@ async def handle_app_mention(event: dict, context: BoltContext):
             ),
         )
 
+        logger.info(
+            "Activity registered successfully via Slack",
+            channel_id=channel_id,
+            activity_date=activity_date,
+        )
+
         blocks = activity_registered_blocks(
             description, activity_date, activity.count_month
         )
@@ -213,7 +256,11 @@ async def handle_app_mention(event: dict, context: BoltContext):
             text="Activity registered!",
         )
     except Exception as e:
-        logger.error("Failed to register activity from Slack", user_id=user_id, channel_id=channel_id, error=str(e))
+        logger.error(
+            "Failed to register activity from Slack",
+            channel_id=channel_id,
+            error=str(e),
+        )
         blocks = error_blocks(str(e))
         await context.client.chat_postEphemeral(
             channel=channel_id,

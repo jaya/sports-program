@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.program import Program
-from app.repositories.base_repository import BaseRepository, logger
+from app.repositories.base_repository import BaseRepository
 
 
 class ProgramRepository(BaseRepository[Program]):
@@ -14,19 +14,15 @@ class ProgramRepository(BaseRepository[Program]):
         super().__init__(session, Program)
 
     async def find_by_name(self, name: str) -> Program | None:
-        logger.debug("Searching for program by name", name=name)
         stmt = select(Program).where(Program.name == name)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def find_by_name_and_slack_channel(
-            self,
-            name: str,
-            slack_channel: str
+        self, name: str, slack_channel: str
     ) -> Program | None:
         stmt = select(Program).where(
-            Program.name == name,
-            Program.slack_channel == slack_channel
+            Program.name == name, Program.slack_channel == slack_channel
         )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()

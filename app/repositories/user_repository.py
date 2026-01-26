@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.user import User
-from app.repositories.base_repository import BaseRepository, logger
+from app.repositories.base_repository import BaseRepository
 
 
 class UserRepository(BaseRepository[User]):
@@ -14,7 +14,6 @@ class UserRepository(BaseRepository[User]):
         super().__init__(session, User)
 
     async def find_by_slack_id(self, slack_id: str) -> User | None:
-        logger.debug("Searching for user by Slack ID", slack_id=slack_id)
         stmt = select(User).where(User.slack_id == slack_id)
         result = await self.session.execute(stmt)
         return result.scalars().first()

@@ -1,6 +1,6 @@
-import structlog
 from typing import Generic, TypeVar
 
+import structlog
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,10 +21,17 @@ class BaseRepository(Generic[ModelType]):
         try:
             await self.session.commit()
             await self.session.refresh(obj_in)
-            logger.debug("Entity created successfully", entity=self.model.__name__, id=getattr(obj_in, "id", None))
-        except Exception as e:
+            logger.debug(
+                "Entity created successfully",
+                entity=self.model.__name__,
+                id=getattr(obj_in, "id", None),
+            )
+        except Exception:
             await self.session.rollback()
-            logger.error("Failed to create entity", entity=self.model.__name__, error=str(e))
+            logger.exception(
+                "Database commit failed while creating entity",
+                entity=self.model.__name__,
+            )
             raise
         return obj_in
 
@@ -43,10 +50,17 @@ class BaseRepository(Generic[ModelType]):
         try:
             await self.session.commit()
             await self.session.refresh(obj_in)
-            logger.debug("Entity updated successfully", entity=self.model.__name__, id=getattr(obj_in, "id", None))
-        except Exception as e:
+            logger.debug(
+                "Entity updated successfully",
+                entity=self.model.__name__,
+                id=getattr(obj_in, "id", None),
+            )
+        except Exception:
             await self.session.rollback()
-            logger.error("Failed to update entity", entity=self.model.__name__, error=str(e))
+            logger.exception(
+                "Database commit failed while updating entity",
+                entity=self.model.__name__,
+            )
             raise
         return obj_in
 
@@ -56,9 +70,17 @@ class BaseRepository(Generic[ModelType]):
         self.session.add_all(objs)
         try:
             await self.session.commit()
-            logger.debug("Multiple entities created", entity=self.model.__name__, count=len(objs), batch=True)
+            logger.debug(
+                "Batch of entities successfully created",
+                entity=self.model.__name__,
+                count=len(objs),
+            )
             return objs
-        except Exception as e:
+        except Exception:
             await self.session.rollback()
-            logger.error("Failed to create entity", entity=self.model.__name__, error=str(e), batch=True)
+            logger.exception(
+                "Database commit failed while creating entities in batch",
+                entity=self.model.__name__,
+                count=len(objs),
+            )
             raise
