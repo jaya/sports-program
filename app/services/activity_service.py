@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,9 +11,10 @@ from app.exceptions.business import (
     DatabaseError,
     EntityNotFoundError,
 )
+from app.models.achievement import Achievement
 from app.models.activity import Activity
+from app.repositories.achievement_repository import AchievementRepository
 from app.repositories.activity_repository import ActivityRepository
-from app.schemas.achievement import AchievementCreate
 from app.schemas.activity_schema import (
     ActivityCreate,
     ActivitySummaryResponse,
@@ -25,9 +26,6 @@ from app.services.user_service import UserService
 from app.services.utils.reference_date import ReferenceDate
 from app.utils.date_validator import is_within_allowed_window
 
-if TYPE_CHECKING:
-    from app.services.achievement_service import AchievementService
-
 GOAL_ACTIVITIES = 12
 
 
@@ -37,13 +35,14 @@ class ActivityService:
         db: Annotated[AsyncSession, Depends(get_db)],
         user_service: Annotated[UserService, Depends()],
         program_service: Annotated[ProgramService, Depends()],
-        achievement_service: Annotated["AchievementService", Depends()],
+        activity_repo: Annotated[ActivityRepository, Depends()],
+        achievement_repo: Annotated[AchievementRepository, Depends()],
     ):
         self.db = db
         self.user_service = user_service
         self.program_service = program_service
-        self.activity_repo = ActivityRepository(db)
-        self.achievement_service = achievement_service
+        self.activity_repo = activity_repo
+        self.achievement_repo = achievement_repo
 
     async def create(
         self,
@@ -271,13 +270,21 @@ class ActivityService:
     ) -> None:
         try:
             cycle_reference = f"{performed_at.year}-{performed_at.month:02d}"
-            achievement_create = AchievementCreate(cycle_reference=cycle_reference)
 
-            await self.achievement_service.create(
-                achievement_create=achievement_create,
+            already_exists = await self.achievement_repo.user_has_achievement(
                 user_id=user_id,
                 program_id=program_id,
+                cycle_reference=cycle_reference,
             )
+            if already_exists:
+                return
+
+            db_achievement = Achievement(
+                user_id=user_id,
+                program_id=program_id,
+                cycle_reference=cycle_reference,
+            )
+            await self.achievement_repo.create(db_achievement)
         except Exception as e:
             logging.error(
                 f"Failed to create retroactive achievement for user {user_id} "

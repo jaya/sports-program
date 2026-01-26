@@ -1,9 +1,12 @@
 from datetime import date
+from typing import Annotated
 
+from fastapi import Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager
 
+from app.core.database import get_db
 from app.models.activity import Activity
 from app.models.program import Program
 from app.models.user import User
@@ -11,7 +14,7 @@ from app.repositories.base_repository import BaseRepository
 
 
 class ActivityRepository(BaseRepository[Activity]):
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: Annotated[AsyncSession, Depends(get_db)]):
         super().__init__(session, Activity)
 
     async def find_by_user_id_and_date(
