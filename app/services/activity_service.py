@@ -208,7 +208,10 @@ class ActivityService:
         if user_found:
             return user_found.id
         else:
-            display_name = await self.user_service.get_slack_display_name(slack_id)
+            try:
+                display_name = await self.user_service.get_slack_display_name(slack_id)
+            except Exception:
+                display_name = slack_id
             new_user = await self.user_service.create(
                 UserCreate(slack_id=slack_id, display_name=display_name)
             )
