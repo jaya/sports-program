@@ -11,6 +11,7 @@ from app.models.achievement import Achievement
 from app.models.program import Program
 from app.models.user import User
 from app.repositories.achievement_repository import AchievementRepository
+from app.repositories.activity_repository import ActivityRepository
 from app.repositories.program_repository import ProgramRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.achievement import (
@@ -19,7 +20,6 @@ from app.schemas.achievement import (
     AchievementCreate,
 )
 from app.services.achievement_service import AchievementService
-from app.services.activity_service import ActivityService
 
 
 @pytest.fixture
@@ -38,8 +38,8 @@ def mock_program_repo():
 
 
 @pytest.fixture
-def mock_activity_service():
-    return AsyncMock(spec=ActivityService)
+def mock_activity_repo():
+    return AsyncMock(spec=ActivityRepository)
 
 
 @pytest.fixture
@@ -47,13 +47,13 @@ def service(
         mock_achievement_repo,
         mock_user_repo,
         mock_program_repo,
-        mock_activity_service
+        mock_activity_repo
 ):
     return AchievementService(
         achievement_repo=mock_achievement_repo,
         user_repo=mock_user_repo,
         program_repo=mock_program_repo,
-        activity_service=mock_activity_service,
+        activity_repo=mock_activity_repo,
     )
 
 
@@ -63,11 +63,16 @@ async def test_achievement_service_create_success(service, mock_achievement_repo
     expected_achievement = Achievement(
         id=1, user_id=1, program_id=1, cycle_reference="2023-10"
     )
+
+    mock_achievement_repo.user_has_achievement.return_value = False
     mock_achievement_repo.create.return_value = expected_achievement
 
     result = await service.create(achievement_create, program_id=1, user_id=1)
 
     assert result == expected_achievement
+    mock_achievement_repo.user_has_achievement.assert_called_once_with(
+        user_id=1, program_id=1, cycle_reference="2023-10"
+    )
     mock_achievement_repo.create.assert_called_once()
 
 
@@ -76,6 +81,9 @@ async def test_achievement_service_create_database_error(
     service, mock_achievement_repo
 ):
     achievement_create = AchievementCreate(cycle_reference="2023-10")
+
+    mock_achievement_repo.user_has_achievement.return_value = False
+
     mock_achievement_repo.create.side_effect = Exception("DB Fail")
 
     with pytest.raises(DatabaseError):
@@ -272,7 +280,7 @@ async def test_notify_achievements_slack_error(
 async def test_close_cycle_success(
         service,
         mock_program_repo,
-        mock_activity_service,
+        mock_activity_repo,
         mock_achievement_repo,
         mock_user_repo
 ):
@@ -282,7 +290,7 @@ async def test_close_cycle_success(
     user_ids = [1, 2]
 
     mock_program_repo.find_by_name.return_value = program
-    mock_activity_service.find_all_user_by_program_completed.return_value = user_ids
+    mock_activity_repo.find_users_with_completed_program.return_value = user_ids
     mock_achievement_repo.find_existing_user_ids.return_value = set()
     mock_user_repo.find_all_by_ids.return_value = [
         User(id=1, display_name="User 1"),
@@ -299,9 +307,7 @@ async def test_close_cycle_success(
     assert "User 2" in result.users
 
     mock_program_repo.find_by_name.assert_called_once_with(program_name)
-    mock_activity_service.find_all_user_by_program_completed.assert_called_once_with(
-        program_name=program_name, cycle_reference=cycle_reference
-    )
+    mock_activity_repo.find_users_with_completed_program.assert_called_once()
     mock_achievement_repo.create_many.assert_called_once()
 
 
@@ -316,16 +322,16 @@ async def test_close_cycle_program_not_found(service, mock_program_repo):
 
 @pytest.mark.anyio
 async def test_close_cycle_no_users_completed(
-    service, mock_program_repo, mock_activity_service
+    service, mock_program_repo, mock_activity_repo
 ):
     program_name = "Challenge"
     cycle_reference = "2023-10"
     program = Program(id=1, name=program_name)
 
     mock_program_repo.find_by_name.return_value = program
-    mock_activity_service.find_all_user_by_program_completed.return_value = []
+    mock_activity_repo.find_users_with_completed_program.return_value = []
 
     result = await service.close_cycle(program_name, cycle_reference)
 
     assert result is None
-    mock_activity_service.find_all_user_by_program_completed.assert_called_once()
+    mock_activity_repo.find_users_with_completed_program.assert_called_once()

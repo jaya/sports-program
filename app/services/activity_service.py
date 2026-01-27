@@ -11,7 +11,9 @@ from app.exceptions.business import (
     DatabaseError,
     EntityNotFoundError,
 )
+from app.models.achievement import Achievement
 from app.models.activity import Activity
+from app.repositories.achievement_repository import AchievementRepository
 from app.repositories.activity_repository import ActivityRepository
 from app.schemas.activity_schema import (
     ActivityCreate,
@@ -35,11 +37,14 @@ class ActivityService:
         db: Annotated[AsyncSession, Depends(get_db)],
         user_service: Annotated[UserService, Depends()],
         program_service: Annotated[ProgramService, Depends()],
+        activity_repo: Annotated[ActivityRepository, Depends()],
+        achievement_repo: Annotated[AchievementRepository, Depends()],
     ):
         self.db = db
         self.user_service = user_service
         self.program_service = program_service
-        self.activity_repo = ActivityRepository(db)
+        self.activity_repo = activity_repo
+        self.achievement_repo = achievement_repo
 
     async def create(
         self,
@@ -98,6 +103,12 @@ class ActivityService:
             year=db_activity.performed_at.year,
             month=db_activity.performed_at.month,
         )
+
+        is_prev = self._is_previous_month(performed_at, datetime.now())
+        if is_prev and (total_month >= GOAL_ACTIVITIES):
+            await self._generate_retroactive_achievement(
+                user_id, program_found.id, program_found, performed_at
+            )
 
         return ActivitySummaryResponse(id=db_activity.id, count_month=total_month)
 
@@ -243,19 +254,11 @@ class ActivityService:
         if user_found:
             return user_found.id
         else:
-            try:
-                display_name = await self.user_service.get_slack_display_name(slack_id)
-                new_user = await self.user_service.create(
-                    UserCreate(slack_id=slack_id, display_name=display_name)
-                )
-                return new_user.id
-            except Exception as e:
-                logger.exception(
-                    "Failed to validate or create user from Slack",
-                    slack_id=slack_id,
-                    error=str(e),
-                )
-                raise
+            display_name = await self.user_service.get_slack_display_name(slack_id)
+            new_user = await self.user_service.create(
+                UserCreate(slack_id=slack_id, display_name=display_name)
+            )
+            return new_user.id
 
     async def _validate_program_by_slack_channel(self, program_slack_channel: str):
         program_found = await self.program_service.find_by_slack_channel(
@@ -307,3 +310,37 @@ class ActivityService:
                 )
 
         return performed_at
+
+    async def _generate_retroactive_achievement(
+        self, user_id: int, program_id: int, program, performed_at: datetime
+    ) -> None:
+        cycle_reference = f"{performed_at.year}-{performed_at.month:02d}"
+        try:
+            already_exists = await self.achievement_repo.user_has_achievement(
+                user_id=user_id,
+                program_id=program_id,
+                cycle_reference=cycle_reference,
+            )
+            if already_exists:
+                return
+
+            db_achievement = Achievement(
+                user_id=user_id,
+                program_id=program_id,
+                cycle_reference=cycle_reference,
+            )
+            await self.achievement_repo.create(db_achievement)
+        except Exception:
+            logger.exception(
+                "Failed to create retroactive achievement for user",
+                user_id=user_id,
+                program_id=program_id,
+                cycle=cycle_reference,
+            )
+
+    def _is_previous_month(
+        self, activity_date: datetime, current_date: datetime
+    ) -> bool:
+        return (activity_date.year * 12 + activity_date.month) == (
+            current_date.year * 12 + current_date.month - 1
+        )

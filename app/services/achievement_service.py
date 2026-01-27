@@ -11,15 +11,19 @@ from app.exceptions.business import (
 )
 from app.models.achievement import Achievement
 from app.repositories.achievement_repository import AchievementRepository
+from app.repositories.activity_repository import ActivityRepository
 from app.repositories.program_repository import ProgramRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.achievement import (
     AchievementBatchCreate,
     AchievementBatchResponse,
     AchievementCreate,
+    AchievementCreateResponse,
     NotifyResponse,
 )
-from app.services.activity_service import ActivityService
+from app.services.utils.reference_date import ReferenceDate
+
+GOAL_ACTIVITIES = 12
 
 
 async def _send_slack_notification(channel: str, message: str) -> None:
@@ -60,27 +64,49 @@ class AchievementService:
         achievement_repo: Annotated[AchievementRepository, Depends()],
         user_repo: Annotated[UserRepository, Depends()],
         program_repo: Annotated[ProgramRepository, Depends()],
-        activity_service: Annotated[ActivityService, Depends()],
+        activity_repo: Annotated[ActivityRepository, Depends()],
     ):
         self.achievement_repo = achievement_repo
         self.user_repo = user_repo
         self.program_repo = program_repo
-        self.activity_service = activity_service
+        self.activity_repo = activity_repo
 
     async def create(
         self,
         achievement_create: AchievementCreate,
         program_id: int,
         user_id: int,
-    ):
+    ) -> AchievementCreateResponse | None:
+        already_exists = await self.achievement_repo.user_has_achievement(
+            user_id=user_id,
+            program_id=program_id,
+            cycle_reference=achievement_create.cycle_reference,
+        )
+
+        if already_exists:
+            logger.info(
+                "Achievement already exists",
+                user_id={user_id},
+                program_id={program_id},
+                cycle={achievement_create.cycle_reference},
+            )
+            return None
+
         db_achievement = Achievement(
             user_id=user_id,
             program_id=program_id,
             cycle_reference=achievement_create.cycle_reference,
         )
         try:
-            return await self.achievement_repo.create(db_achievement)
+            created = await self.achievement_repo.create(db_achievement)
+            logger.info("Achievement created for user", user_id=user_id)
+            return created
         except Exception as e:
+            logger.exception(
+                "Database error while creating achievement",
+                program_id=program_id,
+                user_id=user_id,
+            )
             raise DatabaseError() from e
 
     async def create_batch(
@@ -122,7 +148,7 @@ class AchievementService:
                 await self.achievement_repo.create_many(db_achievements)
             except Exception as e:
                 logger.exception(
-                    "Database error while creating achievements",
+                    "Database error while achievement batch creation",
                     program_id=program_id,
                     cycle_reference=cycle_reference,
                     total=len(new_user_ids),
@@ -201,8 +227,9 @@ class AchievementService:
         if not program:
             raise EntityNotFoundError("Program", program_name)
 
-        user_ids = await self.activity_service.find_all_user_by_program_completed(
-            program_name=program_name, cycle_reference=cycle_reference
+        ref = ReferenceDate.from_str(cycle_reference)
+        user_ids = await self.activity_repo.find_users_with_completed_program(
+            program.id, ref.year, ref.month, GOAL_ACTIVITIES
         )
 
         if not user_ids:
