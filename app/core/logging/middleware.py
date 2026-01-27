@@ -1,8 +1,10 @@
 import time
+
 import structlog
 from fastapi import Request
 
 logger = structlog.get_logger()
+
 
 async def logging_middleware(request: Request, call_next):
     structlog.contextvars.clear_contextvars()
