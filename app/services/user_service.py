@@ -15,6 +15,7 @@ from app.schemas.user_schema import UserCreate
 
 logger = structlog.get_logger()
 
+
 class UserService:
     def __init__(
         self,
@@ -24,14 +25,21 @@ class UserService:
 
     async def get_slack_display_name(self, slack_id: str) -> str:
         try:
+            logger.debug(
+                "Fetching Slack user display name",
+                slack_id=slack_id,
+            )
             response = await slack_app.client.users_info(user=slack_id)
 
             if not response["ok"]:
                 error = response.get("error", "unknown_error")
-                logger.error("Failed to fetch user from Slack API", slack_id=slack_id, error=error)
+                logger.error(
+                    "Failed to fetch user from Slack API",
+                    slack_id=slack_id,
+                    error=error,
+                )
                 raise ExternalServiceError(
-                    service="Slack",
-                    message=f"Failed to fetch user: {error}"
+                    service="Slack", message=f"Failed to fetch user: {error}"
                 )
 
             user_info = response["user"]
@@ -42,32 +50,47 @@ class UserService:
             )
 
             if not display_name:
-                logger.error("Failed to fetch user from Slack API", slack_id=slack_id, error="No display name found")
+                logger.error(
+                    "Failed to fetch user from Slack API",
+                    slack_id=slack_id,
+                    error="No display name found",
+                )
                 raise ExternalServiceError(
-                    service="Slack",
-                    message=f"User {slack_id} has no display name"
+                    service="Slack", message=f"User {slack_id} has no display name"
                 )
 
             return display_name
         except Exception as e:
             if not isinstance(e, ExternalServiceError):
-                logger.error("Failed to fetch user from Slack API", slack_id=slack_id, error=str(e))
+                logger.exception(
+                    "Unexpected error while fetching Slack user display name",
+                    slack_id=slack_id,
+                )
             raise
 
     async def create(self, user: UserCreate):
+        logger.info(
+            "Starting user creation",
+            entity="User",
+        )
         user_found = await self.user_repo.find_by_slack_id(user.slack_id)
         if user_found:
-            logger.warning("User already exists", entity="User", slack_id=user.slack_id)
             raise DuplicateEntityError("User", "slack_id", user.slack_id)
 
         db_user = User(slack_id=user.slack_id, display_name=user.display_name)
 
         try:
             created = await self.user_repo.create(db_user)
-            logger.info("User created successfully", slack_id=user.slack_id, display_name=user.display_name)
+            logger.info(
+                "User created successfully",
+                display_name=user.display_name,
+            )
             return created
         except Exception as e:
-            logger.error("Failed to create user", entity="User", error=str(e))
+            logger.exception(
+                "Unexpected database error while creating user",
+                entity="User",
+            )
             raise DatabaseError() from e
 
     async def find_all(self):
