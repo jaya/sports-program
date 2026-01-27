@@ -89,6 +89,7 @@ class ActivityService:
                 "Activity created",
                 program_id=program_found.id,
                 activity_id=db_activity.id,
+                program_slack_channel=program_slack_channel,
             )
         except Exception as e:
             logger.exception(
@@ -106,6 +107,13 @@ class ActivityService:
 
         is_prev = self._is_previous_month(performed_at, datetime.now())
         if is_prev and (total_month >= GOAL_ACTIVITIES):
+            logger.info(
+                "Generating retroactive achievement",
+                user_id=user_id,
+                program_id=program_found.id,
+                total_month=total_month,
+                goal_activities=GOAL_ACTIVITIES,
+            )
             await self._generate_retroactive_achievement(
                 user_id, program_found.id, program_found, performed_at
             )
@@ -158,14 +166,18 @@ class ActivityService:
             await self.db.refresh(db_activity)
             logger.info(
                 "Activity updated successfully",
-                activity_id=db_activity.id,
+                user_id=user_id,
+                activity_id=id,
+                program_id=program_found.id,
             )
         except Exception as e:
             await self.db.rollback()
             logger.exception(
                 "Database error while updating activity",
                 entity="Activity",
+                user_id=user_id,
                 activity_id=id,
+                program_id=program_found.id,
             )
             raise DatabaseError() from e
 

@@ -83,7 +83,7 @@ class UserService:
             created = await self.user_repo.create(db_user)
             logger.info(
                 "User created successfully",
-                display_name=user.display_name,
+                slack_id=user.slack_id,
             )
             return created
         except Exception as e:

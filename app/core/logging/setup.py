@@ -1,22 +1,25 @@
 import logging
 import sys
+
 import structlog
 from structlog.stdlib import LoggerFactory, ProcessorFormatter
 
 from app.core.config import settings
+
 
 def setup_logging():
     shared_processors = [
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.format_exc_info,
-        structlog.processors.TimeStamper(fmt="iso")
+        structlog.processors.TimeStamper(fmt="iso"),
     ]
 
     processors, renderer, log_level = get_environment_logging_config(shared_processors)
 
     structlog.configure(
-        processors=processors + [
+        processors=processors
+        + [
             structlog.stdlib.filter_by_level,
             structlog.stdlib.add_logger_name,
             structlog.stdlib.PositionalArgumentsFormatter(),
@@ -27,18 +30,15 @@ def setup_logging():
         cache_logger_on_first_use=True,
     )
 
-
     configure_std_logging_and_uvicorn(processors, renderer, log_level)
+
 
 def get_environment_logging_config(processors: list):
     if settings.DEBUG:
         processors.extend(
             [
-                structlog.processors.StackInfoRenderer(),
                 structlog.processors.CallsiteParameterAdder(
                     {
-                        structlog.processors.CallsiteParameter.FILENAME,
-                        structlog.processors.CallsiteParameter.FUNC_NAME,
                         structlog.processors.CallsiteParameter.LINENO,
                     }
                 ),
@@ -46,7 +46,6 @@ def get_environment_logging_config(processors: list):
         )
         return processors, structlog.dev.ConsoleRenderer(), logging.DEBUG
 
-    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
     return processors, structlog.processors.JSONRenderer(), logging.INFO
 
 

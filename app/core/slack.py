@@ -1,5 +1,4 @@
-import logging
-
+import structlog
 from slack_bolt.async_app import AsyncApp
 from slack_bolt.oauth.async_callback_options import AsyncCallbackOptions
 from slack_bolt.oauth.async_oauth_settings import AsyncOAuthSettings
@@ -8,24 +7,24 @@ from app.core.config import settings
 from app.core.database import async_session
 from app.core.slack_stores import SQLAlchemyInstallationStore, SQLAlchemyStateStore
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 async def oauth_success(args):
     installation = args.installation
     logger.info(
-        "Slack OAuth SUCCESS: Team: %s, User: %s",
-        installation.team_id,
-        installation.user_id,
+        "Slack OAuth SUCCESS",
+        team_id=installation.team_id,
+        user_id=installation.user_id,
     )
     return await args.default.success(args)
 
 
 async def oauth_failure(args):
     logger.error(
-        "Slack OAuth FAILURE: Reason: %s, State: %s",
-        args.reason,
-        args.request.query.get("state"),
+        "Slack OAuth FAILURE",
+        reason=args.reason,
+        state=args.request.query.get("state"),
     )
     return await args.default.failure(args)
 
