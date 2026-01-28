@@ -49,6 +49,103 @@ async def test_save_installation_new(slack_oauth_service, mock_installation_repo
 
 
 @pytest.mark.anyio
+async def test_save_installation_update(slack_oauth_service, mock_installation_repo):
+    # Existing installation with old team_id or null
+    db_install = SlackInstallation(
+        team_id=None,
+        enterprise_id="E123",
+        is_enterprise_install=True,
+        bot_token="old-token",
+    )
+    mock_installation_repo.get_by_team_or_enterprise.return_value = db_install
+
+    # New installation data for the same enterprise but with a team_id
+    installation = Installation(
+        team_id="T123",
+        enterprise_id="E123",
+        is_enterprise_install=True,
+        bot_token="new-token",
+        bot_id="B123",
+        bot_user_id="U123",
+        user_id="U456",
+        bot_scopes=["commands"],
+    )
+
+    await slack_oauth_service.save_installation(installation)
+
+    mock_installation_repo.create.assert_not_called()
+    mock_installation_repo.update.assert_called_once_with(db_install)
+
+    assert db_install.team_id == "T123"
+    assert db_install.bot_token == "new-token"
+    assert db_install.enterprise_id == "E123"
+    assert db_install.is_enterprise_install is True
+
+
+@pytest.mark.anyio
+async def test_save_installation_update_no_overwrite(
+    slack_oauth_service, mock_installation_repo
+):
+    # Existing installation with a team_id
+    db_install = SlackInstallation(
+        team_id="T123",
+        enterprise_id="E123",
+        is_enterprise_install=False,
+        bot_token="old-token",
+    )
+    mock_installation_repo.get_by_team_or_enterprise.return_value = db_install
+
+    # New installation data with None for team_id (e.g. Org-wide update)
+    installation = Installation(
+        team_id=None,
+        enterprise_id="E123",
+        is_enterprise_install=True,
+        bot_token="new-token",
+        bot_id="B123",
+        bot_user_id="U123",
+        user_id="U456",
+        bot_scopes=["commands"],
+    )
+
+    await slack_oauth_service.save_installation(installation)
+
+    assert db_install.team_id == "T123"  # Should NOT be overwritten by None
+    assert db_install.bot_token == "new-token"
+    assert db_install.is_enterprise_install is True
+
+
+@pytest.mark.anyio
+async def test_save_installation_update_fill_none(
+    slack_oauth_service, mock_installation_repo
+):
+    # Existing installation with None team_id (e.g. Org-wide install)
+    db_install = SlackInstallation(
+        team_id=None,
+        enterprise_id="E123",
+        is_enterprise_install=True,
+        bot_token="old-token",
+    )
+    mock_installation_repo.get_by_team_or_enterprise.return_value = db_install
+
+    # New installation data for a specific team in the enterprise
+    installation = Installation(
+        team_id="T123",
+        enterprise_id="E123",
+        is_enterprise_install=True,
+        bot_token="new-token",
+        bot_id="B123",
+        bot_user_id="U123",
+        user_id="U456",
+        bot_scopes=["commands"],
+    )
+
+    await slack_oauth_service.save_installation(installation)
+
+    assert db_install.team_id == "T123"  # Should be filled if previously None
+    assert db_install.bot_token == "new-token"
+
+
+@pytest.mark.anyio
 async def test_issue_state(slack_oauth_service, mock_state_repo):
     state = "state123"
     expiration = 600
