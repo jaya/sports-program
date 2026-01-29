@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 
@@ -8,6 +10,7 @@ from app.api.program_router import router as program_router
 from app.api.slack_router import router as slack_router
 from app.api.user_router import router as user_router
 from app.core.config import settings
+from app.core.database import engine
 from app.exceptions.business import (
     BusinessException,
     BusinessRuleViolationError,
@@ -16,6 +19,12 @@ from app.exceptions.business import (
     EntityNotFoundError,
     ExternalServiceError,
 )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await engine.dispose()
 
 
 def setup_exception_handlers(app: FastAPI):
@@ -62,6 +71,7 @@ def setup_exception_handlers(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
+    lifespan=lifespan,
 )
 
 app.include_router(health_router)
