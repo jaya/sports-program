@@ -44,6 +44,14 @@ class SlackOAuthService:
             )
             await self.installation_repo.create(db_installation)
         else:
+            # Only update team/enterprise if not None
+            # (prevents overwriting valid data with None)
+            if installation.team_id:
+                db_installation.team_id = installation.team_id
+            if installation.enterprise_id:
+                db_installation.enterprise_id = installation.enterprise_id
+
+            db_installation.is_enterprise_install = installation.is_enterprise_install
             db_installation.bot_token = installation.bot_token
             db_installation.bot_id = installation.bot_id
             db_installation.bot_user_id = installation.bot_user_id
@@ -54,6 +62,7 @@ class SlackOAuthService:
                 "Updating Slack installation for team",
                 team_id=installation.team_id,
                 enterprise_id=installation.enterprise_id,
+                is_enterprise_install=db_installation.is_enterprise_install
             )
             await self.installation_repo.update(db_installation)
 

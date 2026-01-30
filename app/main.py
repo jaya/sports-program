@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import structlog
 from asgi_correlation_id import CorrelationIdMiddleware
 from fastapi import FastAPI, Request, status
@@ -10,6 +12,7 @@ from app.api.program_router import router as program_router
 from app.api.slack_router import router as slack_router
 from app.api.user_router import router as user_router
 from app.core.config import settings
+from app.core.database import engine
 from app.core.logging.middleware import logging_middleware
 from app.core.logging.setup import setup_logging
 from app.exceptions.business import (
@@ -23,6 +26,12 @@ from app.exceptions.business import (
 
 logger = structlog.get_logger()
 setup_logging()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await engine.dispose()
 
 
 def setup_exception_handlers(app: FastAPI):
@@ -51,7 +60,7 @@ def setup_exception_handlers(app: FastAPI):
         )
 
     @app.exception_handler(DatabaseError)
-    async def db_error_handler(request: Request, exc: DatabaseError):
+    async def db_error_handler(request, exc):
         logger.error("Database error occurred", detail=exc.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -67,10 +76,10 @@ def setup_exception_handlers(app: FastAPI):
         )
 
     @app.exception_handler(BusinessException)
-    async def general_business_handler(request: Request, exc: BusinessException):
+    async def general_business_handler(request, exc):
         logger.warning("Business exception occurred", detail=str(exc))
         return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)}
+            status_code=status.HTTP_400_BAD_REQUEST, content={"detail": exc.message}
         )
 
     @app.exception_handler(Exception)
@@ -89,6 +98,7 @@ def setup_exception_handlers(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
+    lifespan=lifespan,
 )
 
 app.add_middleware(CorrelationIdMiddleware)
