@@ -33,9 +33,7 @@ class ActivityRepository(BaseRepository[Activity]):
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def find_by_id_and_slack_id(
-        self, id: int, slack_id: str
-    ) -> Activity | None:
+    async def find_by_id_and_slack_id(self, id: int, slack_id: str) -> Activity | None:
         stmt = (
             select(Activity)
             .join(Activity.user)
@@ -99,4 +97,5 @@ class ActivityRepository(BaseRepository[Activity]):
             .having(func.count(Activity.id) >= goal)
         )
         result = await self.session.execute(stmt)
-        return list(result.scalars().all())
+        user_ids = list(result.scalars().all())
+        return user_ids

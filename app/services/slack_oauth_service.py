@@ -1,13 +1,13 @@
-import logging
 from datetime import UTC, datetime
 
+import structlog
 from slack_sdk.oauth.installation_store import Installation
 
 from app.models.slack_installation import SlackInstallation, SlackState
 from app.repositories.slack_installation_repository import SlackInstallationRepository
 from app.repositories.slack_state_repository import SlackStateRepository
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class SlackOAuthService:
@@ -38,9 +38,9 @@ class SlackOAuthService:
                 scope=scope,
             )
             logger.info(
-                "Creating new Slack installation for team %s (enterprise: %s)",
-                installation.team_id,
-                installation.enterprise_id,
+                "Creating new Slack installation for team",
+                team_id=installation.team_id,
+                enterprise_id=installation.enterprise_id,
             )
             await self.installation_repo.create(db_installation)
         else:
@@ -59,10 +59,10 @@ class SlackOAuthService:
             db_installation.scope = scope
 
             logger.info(
-                "Updating Slack installation: team %s, enterprise %s, org-wide: %s",
-                db_installation.team_id,
-                db_installation.enterprise_id,
-                db_installation.is_enterprise_install,
+                "Updating Slack installation for team",
+                team_id=installation.team_id,
+                enterprise_id=installation.enterprise_id,
+                is_enterprise_install=db_installation.is_enterprise_install
             )
             await self.installation_repo.update(db_installation)
 
@@ -79,7 +79,7 @@ class SlackOAuthService:
         db_install = await self.find_installation(enterprise_id, team_id)
         if not db_install:
             logger.debug(
-                "Bot not found for team %s (enterprise: %s)", team_id, enterprise_id
+                "Bot not found for team", team_id=team_id, enterprise_id=enterprise_id
             )
             return None
 
@@ -101,7 +101,7 @@ class SlackOAuthService:
             tz=UTC,
         )
         db_state = SlackState(state=state, expire_at=expire_at)
-        logger.info("Issued Slack OAuth state: %s (expires: %s)", state, expire_at)
+        logger.info("Issued Slack OAuth state", state=state, expires=expire_at)
         await self.state_repo.create(db_state)
         return state
 
@@ -109,8 +109,10 @@ class SlackOAuthService:
         db_state = await self.state_repo.find_by_state(state)
         if db_state:
             is_valid = db_state.expire_at > datetime.now(UTC)
-            logger.info("Consuming Slack OAuth state: %s. Valid: %s", state, is_valid)
+            logger.info("Consuming Slack OAuth state", state=state, is_valid=is_valid)
             await self.state_repo.delete_by_state(state)
             return is_valid
-        logger.warning("Attempted to consume non-existent Slack OAuth state: %s", state)
+        logger.warning(
+            "Attempted to consume non-existent Slack OAuth state", state=state
+        )
         return False
