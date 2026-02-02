@@ -123,14 +123,16 @@ class TestActivityCreate:
         activity_create = ActivityCreate(
             description="Run", performed_at=today, evidence_url="https://evidence.com"
         )
-        result = await activity_service.create(activity_create, "C123", "U123")
+        result = await activity_service.create(
+            activity_create, "C123", "U123"
+        )
 
         assert result.count_month == 5
         mock_activity_repo.create.assert_called_once()
         mock_activity_repo.count_monthly.assert_called_once()
 
     async def test_create_activity_auto_create_user(
-        self, activity_service, mock_user_service, setup_mocks, today
+        self, activity_service, mock_user_service, setup_mocks, today, mock_slack_client
     ):
         mock_user_service.find_by_slack_id.return_value = None
         mock_user_service.get_slack_display_name.return_value = "New User"
@@ -164,11 +166,15 @@ class TestActivityCreate:
         find_programs_return,
         expected_error,
         match,
+        mock_slack_client,
     ):
         mock_program_service.find_by_slack_channel.return_value = find_programs_return
         await _assert_error(
             activity_service.create(
-                ActivityCreate(description="R", performed_at=today), "C", "U"
+                ActivityCreate(description="R", performed_at=today),
+                "C",
+                "U",
+                mock_slack_client,
             ),
             expected_error,
             match,
@@ -182,7 +188,9 @@ class TestActivityCreate:
         )
         await _assert_error(
             activity_service.create(
-                ActivityCreate(description="R", performed_at=today), "C", "U"
+                ActivityCreate(description="R", performed_at=today),
+                "C",
+                "U"
             ),
             BusinessRuleViolationError,
             "already registered",
@@ -196,7 +204,7 @@ class TestActivityCreate:
         ],
     )
     async def test_create_fails_on_date_validation(
-        self, activity_service, setup_mocks, today, delta, match
+        self, activity_service, setup_mocks, today, delta, match, mock_slack_client
     ):
         invalid_date = today + delta
 
@@ -217,7 +225,9 @@ class TestActivityCreate:
         mock_activity_repo.create.side_effect = Exception("DB Fail")
         await _assert_error(
             activity_service.create(
-                ActivityCreate(description="R", performed_at=today), "C", "U"
+                ActivityCreate(description="R", performed_at=today),
+                "C",
+                "U"
             ),
             DatabaseError,
         )
@@ -353,7 +363,7 @@ class TestActivityQuery:
             0
         ].id == 2
         assert (
-            await activity_service.find_all_user_by_program_completed("P", "2023-10")
+            await activity_service.find_all_user_by_program_completed(1, "2023-10")
         ) == [1]
         assert (await activity_service.find_by_id(1, "U")).id == 3
 
@@ -381,13 +391,6 @@ class TestActivityQuery:
                 EntityNotFoundError,
                 "User",
             ),
-            (
-                "find_all_user_by_program_completed",
-                ("P", "2023-10"),
-                "program_service.find_by_name",
-                EntityNotFoundError,
-                "Program",
-            ),
         ],
     )
     async def test_query_fails_when_not_found(
@@ -405,8 +408,6 @@ class TestActivityQuery:
             mock_activity_repo.find_by_id_and_slack_id.return_value = None
         elif "user_service" in mock_target:
             activity_service.user_service.find_by_slack_id.return_value = None
-        else:
-            activity_service.program_service.find_by_name.return_value = None
 
         await _assert_error(
             getattr(activity_service, method)(*args), expected_error, match

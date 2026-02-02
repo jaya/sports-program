@@ -2,14 +2,16 @@ import logging
 from typing import Annotated
 
 from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.slack import slack_app
+from app.core.database import get_db
 from app.exceptions.business import (
     DatabaseError,
     EntityNotFoundError,
     ExternalServiceError,
 )
 from app.models.achievement import Achievement
+from app.models.program import Program
 from app.repositories.achievement_repository import AchievementRepository
 from app.repositories.activity_repository import ActivityRepository
 from app.repositories.program_repository import ProgramRepository
@@ -22,21 +24,9 @@ from app.schemas.achievement import (
     NotifyResponse,
 )
 from app.services.utils.reference_date import ReferenceDate
+from app.utils.slack_client import get_slack_client_for_program
 
 GOAL_ACTIVITIES = 12
-
-
-async def _send_slack_notification(channel: str, message: str) -> None:
-    try:
-        await slack_app.client.chat_postMessage(
-            channel=channel,
-            text=message,
-        )
-    except Exception as e:
-        logging.error(f"Error sending Slack message: {e}")
-        raise ExternalServiceError(
-            service="Slack", message="Failed to send notification"
-        ) from e
 
 
 def _build_message(
@@ -58,11 +48,13 @@ def _build_message(
 class AchievementService:
     def __init__(
         self,
+        db: Annotated[AsyncSession, Depends(get_db)],
         achievement_repo: Annotated[AchievementRepository, Depends()],
         user_repo: Annotated[UserRepository, Depends()],
         program_repo: Annotated[ProgramRepository, Depends()],
         activity_repo: Annotated[ActivityRepository, Depends()],
     ):
+        self.db = db
         self.achievement_repo = achievement_repo
         self.user_repo = user_repo
         self.program_repo = program_repo
@@ -143,15 +135,15 @@ class AchievementService:
 
     async def notify_achievements(
         self,
-        program_name: str,
+        program_id: int,
         cycle_reference: str,
     ) -> NotifyResponse:
-        program = await self.program_repo.find_by_name(program_name)
+        program = await self.program_repo.get_by_id(program_id)
         if not program:
-            raise EntityNotFoundError("Program", program_name)
+            raise EntityNotFoundError("Program", program_id)
 
         pending = await self.achievement_repo.find_pending_notification(
-            program_id=program.id,
+            program_id=program_id,
             cycle_reference=cycle_reference,
         )
 
@@ -162,7 +154,7 @@ class AchievementService:
             )
 
         message, user_names = _build_message(pending, cycle_reference)
-        await _send_slack_notification(program.slack_channel, message)
+        await self._send_slack_notification(program, message)
         await self.achievement_repo.mark_as_notified([ach.id for ach in pending])
 
         return NotifyResponse(
@@ -171,24 +163,45 @@ class AchievementService:
             users=user_names,
         )
 
+    async def _send_slack_notification(
+        self, program: Program, message: str
+    ) -> None:
+        async with get_slack_client_for_program(self.db, program) as client:
+            if not client:
+                raise ExternalServiceError(
+                    service="Slack",
+                    message=f"Could not get client for program {program.name}. "
+                    "Check if team_id/enterprise_id is set and installation exists."
+                )
+
+            try:
+                await client.chat_postMessage(
+                    channel=program.slack_channel,
+                    text=message,
+                )
+            except Exception as e:
+                logging.error(f"Error sending Slack message: {e}")
+                raise ExternalServiceError(
+                    service="Slack", message="Failed to send notification"
+                ) from e
+
     async def close_cycle(
-        self, program_name: str, cycle_reference: str
+        self, program_id: int, cycle_reference: str
     ) -> AchievementBatchResponse | None:
-        program = await self.program_repo.find_by_name(program_name)
+        program = await self.program_repo.get_by_id(program_id)
         if not program:
-            raise EntityNotFoundError("Program", program_name)
+            raise EntityNotFoundError("Program", program_id)
 
         ref = ReferenceDate.from_str(cycle_reference)
         user_ids = await self.activity_repo.find_users_with_completed_program(
-            program.id, ref.year, ref.month, GOAL_ACTIVITIES
-        )
+            program.id, ref.year, ref.month, GOAL_ACTIVITIES)
 
         if not user_ids:
             return None
 
         batch = AchievementBatchCreate(
             user_ids=user_ids,
-            program_id=program.id,
+            program_id=program_id,
             program_name=program.name,
             cycle_reference=cycle_reference,
         )

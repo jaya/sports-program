@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -87,85 +87,84 @@ async def test_user_service_find_by_slack_id(user_service, mock_user_repo):
 
 
 @pytest.mark.anyio
-async def test_get_slack_display_name_success_with_display_name(user_service):
-    with patch("app.services.user_service.slack_app") as mock_slack:
-        mock_slack.client.users_info = AsyncMock(return_value={
-            "ok": True,
-            "user": {
-                "profile": {"display_name": "John Doe"},
-                "real_name": "John D.",
-                "name": "johndoe"
-            }
-        })
+async def test_get_slack_display_name_success_with_display_name(
+    user_service, mock_slack_client
+):
+    mock_slack_client.users_info = AsyncMock(return_value={
+        "ok": True,
+        "user": {
+            "profile": {"display_name": "John Doe"},
+            "real_name": "John D.",
+            "name": "johndoe"
+        }
+    })
 
-        result = await user_service.get_slack_display_name("U123ABC")
+    result = await user_service.get_slack_display_name("U123ABC", mock_slack_client)
 
-        assert result == "John Doe"
-        mock_slack.client.users_info.assert_called_once_with(user="U123ABC")
-
-
-@pytest.mark.anyio
-async def test_get_slack_display_name_fallback_to_real_name(user_service):
-    with patch("app.services.user_service.slack_app") as mock_slack:
-        mock_slack.client.users_info = AsyncMock(return_value={
-            "ok": True,
-            "user": {
-                "profile": {"display_name": ""},
-                "real_name": "John D.",
-                "name": "johndoe"
-            }
-        })
-
-        result = await user_service.get_slack_display_name("U123ABC")
-
-        assert result == "John D."
+    assert result == "John Doe"
+    mock_slack_client.users_info.assert_called_once_with(user="U123ABC")
 
 
 @pytest.mark.anyio
-async def test_get_slack_display_name_fallback_to_name(user_service):
-    with patch("app.services.user_service.slack_app") as mock_slack:
-        mock_slack.client.users_info = AsyncMock(return_value={
-            "ok": True,
-            "user": {
-                "profile": {"display_name": ""},
-                "real_name": "",
-                "name": "johndoe"
-            }
-        })
+async def test_get_slack_display_name_fallback_to_real_name(
+    user_service, mock_slack_client
+):
+    mock_slack_client.users_info = AsyncMock(return_value={
+        "ok": True,
+        "user": {
+            "profile": {"display_name": ""},
+            "real_name": "John D.",
+            "name": "johndoe"
+        }
+    })
 
-        result = await user_service.get_slack_display_name("U123ABC")
+    result = await user_service.get_slack_display_name("U123ABC", mock_slack_client)
 
-        assert result == "johndoe"
-
-
-@pytest.mark.anyio
-async def test_get_slack_display_name_api_error(user_service):
-    with patch("app.services.user_service.slack_app") as mock_slack:
-        mock_slack.client.users_info = AsyncMock(return_value={
-            "ok": False,
-            "error": "user_not_found"
-        })
-
-        with pytest.raises(ExternalServiceError) as exc_info:
-            await user_service.get_slack_display_name("U123ABC")
-
-        assert "Slack" in str(exc_info.value.message)
-        assert "user_not_found" in str(exc_info.value.message)
+    assert result == "John D."
 
 
 @pytest.mark.anyio
-async def test_get_slack_display_name_no_display_name(user_service):
-    with patch("app.services.user_service.slack_app") as mock_slack:
-        mock_slack.client.users_info = AsyncMock(return_value={
-            "ok": True,
-            "user": {
-                "profile": {},
-                "real_name": "",
-                "name": ""
-            }
-        })
+async def test_get_slack_display_name_fallback_to_name(user_service, mock_slack_client):
+    mock_slack_client.users_info = AsyncMock(return_value={
+        "ok": True,
+        "user": {
+            "profile": {"display_name": ""},
+            "real_name": "",
+            "name": "johndoe"
+        }
+    })
 
-        with pytest.raises(ExternalServiceError) as exc_info:
-            await user_service.get_slack_display_name("U123ABC")
+    result = await user_service.get_slack_display_name("U123ABC", mock_slack_client)
 
-        assert "has no display name" in str(exc_info.value.message)
+    assert result == "johndoe"
+
+
+@pytest.mark.anyio
+async def test_get_slack_display_name_api_error(user_service, mock_slack_client):
+    mock_slack_client.users_info = AsyncMock(return_value={
+        "ok": False,
+        "error": "user_not_found"
+    })
+
+    with pytest.raises(ExternalServiceError) as exc_info:
+        await user_service.get_slack_display_name("U123ABC", mock_slack_client)
+
+    assert "Slack" in str(exc_info.value.message)
+    assert "user_not_found" in str(exc_info.value.message)
+
+
+@pytest.mark.anyio
+async def test_get_slack_display_name_no_display_name(user_service, mock_slack_client):
+    mock_slack_client.users_info = AsyncMock(return_value={
+        "ok": True,
+        "user": {
+            "profile": {},
+            "real_name": "",
+            "name": ""
+        }
+    })
+
+    with pytest.raises(ExternalServiceError) as exc_info:
+        await user_service.get_slack_display_name("U123ABC", mock_slack_client)
+
+    assert "has no display name" in str(exc_info.value.message)
