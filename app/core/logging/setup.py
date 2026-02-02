@@ -12,6 +12,7 @@ SENSITIVE_FIELDS = {
     "team_id",
     "enterprise_id",
     "state",
+    "channel_id",
 }
 
 
