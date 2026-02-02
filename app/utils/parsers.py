@@ -1,8 +1,8 @@
 import re
-from datetime import date
+from datetime import date, datetime
 
 
-def parse_activity_date(text: str) -> tuple[str, str | None]:
+def parse_activity_date(text: str) -> tuple[str, datetime | None]:
     """
     Parses natural language text to extract a date in @DD/MM format and a description.
     Cleans up Slack mentions and extra whitespace.
@@ -21,13 +21,13 @@ def parse_activity_date(text: str) -> tuple[str, str | None]:
         month = int(match.group(2))
         try:
             # Assuming current year for the date
-            activity_date = date(date.today().year, month, day)
-            return description, activity_date.isoformat()
+            activity_date = datetime(date.today().year, month, day)
+            return description, activity_date
         except ValueError:
             return description, None
     else:
-        activity_date = date.today()
-        return description, activity_date.isoformat()
+        activity_date = datetime.now()
+        return description, activity_date
 
 
 def parse_reference_date(text: str) -> str | None:

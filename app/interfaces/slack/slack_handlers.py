@@ -247,7 +247,7 @@ async def handle_app_mention(event: dict, context: BoltContext):
         )
 
         blocks = activity_registered_blocks(
-            description, activity_date, activity.count_month
+            description, activity_date.date().isoformat(), activity.count_month
         )
         await context.client.chat_postEphemeral(
             channel=channel_id,
