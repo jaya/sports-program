@@ -11,9 +11,11 @@ from app.repositories.program_repository import ProgramRepository
 def mock_session():
     return AsyncMock(spec=AsyncSession)
 
+
 @pytest.fixture
 def program_repo(mock_session):
     return ProgramRepository(mock_session)
+
 
 @pytest.mark.anyio
 async def test_find_by_name_success(program_repo, mock_session):
@@ -30,6 +32,7 @@ async def test_find_by_name_success(program_repo, mock_session):
     assert result == expected_program
     assert result.name == program_name
 
+
 @pytest.mark.anyio
 async def test_find_by_name_not_found(program_repo, mock_session):
     mock_result = MagicMock()
@@ -40,6 +43,7 @@ async def test_find_by_name_not_found(program_repo, mock_session):
 
     mock_session.execute.assert_called_once()
     assert result is None
+
 
 @pytest.mark.anyio
 async def test_find_by_name_and_slack_channel_success(program_repo, mock_session):
@@ -73,6 +77,7 @@ async def test_find_by_name_and_slack_channel_not_found(program_repo, mock_sessi
     mock_session.execute.assert_called_once()
     assert result is None
 
+
 @pytest.mark.anyio
 async def test_find_by_slack_channel_success(program_repo, mock_session):
     channel = "C123"
@@ -103,3 +108,71 @@ async def test_find_by_slack_channel_not_found(program_repo, mock_session):
     mock_session.execute.assert_called_once()
     assert result == []
     assert len(result) == 0
+
+
+@pytest.mark.anyio
+async def test_find_active_in_cycle_success(program_repo, mock_session):
+    from datetime import datetime
+
+    programs = [
+        Program(
+            id=1,
+            name="Active Program",
+            slack_channel="C123",
+            start_date=datetime(2026, 1, 1),
+            end_date=None,
+        ),
+        Program(
+            id=2,
+            name="Another Active",
+            slack_channel="C456",
+            start_date=datetime(2025, 6, 1),
+            end_date=datetime(2026, 12, 31),
+        ),
+    ]
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = programs
+    mock_session.execute.return_value = mock_result
+
+    result = await program_repo.find_active_in_cycle("2026-01")
+
+    mock_session.execute.assert_called_once()
+    assert len(result) == 2
+    assert result[0].name == "Active Program"
+
+
+@pytest.mark.anyio
+async def test_find_active_in_cycle_no_programs(program_repo, mock_session):
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_session.execute.return_value = mock_result
+
+    result = await program_repo.find_active_in_cycle("2026-01")
+
+    mock_session.execute.assert_called_once()
+    assert result == []
+
+
+@pytest.mark.anyio
+async def test_find_active_in_cycle_december(program_repo, mock_session):
+    from datetime import datetime
+
+    programs = [
+        Program(
+            id=1,
+            name="Year End Program",
+            slack_channel="C123",
+            start_date=datetime(2025, 11, 1),
+            end_date=None,
+        ),
+    ]
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = programs
+    mock_session.execute.return_value = mock_result
+
+    result = await program_repo.find_active_in_cycle("2025-12")
+
+    mock_session.execute.assert_called_once()
+    assert len(result) == 1
