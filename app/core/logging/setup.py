@@ -2,6 +2,7 @@ import logging
 import sys
 
 import structlog
+from asgi_correlation_id import correlation_id
 from structlog.stdlib import LoggerFactory, ProcessorFormatter
 
 from app.core.config import settings
@@ -16,9 +17,15 @@ SENSITIVE_FIELDS = {
 }
 
 
+def add_correlation_id(_, __, event_dict):
+    cid = correlation_id.get()
+    return event_dict | ({"correlation_id": cid} if cid else {})
+
+
 def setup_logging():
     shared_processors = [
         structlog.contextvars.merge_contextvars,
+        add_correlation_id,
         structlog.processors.add_log_level,
         structlog.processors.format_exc_info,
         structlog.processors.TimeStamper(fmt="iso"),
