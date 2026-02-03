@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends
@@ -9,7 +9,7 @@ from app.services.achievement_service import AchievementService
 
 
 def _get_previous_month_reference() -> str:
-    today = datetime.now(timezone.utc)
+    today = datetime.now(UTC)
     if today.month == 1:
         year = today.year - 1
         month = 12

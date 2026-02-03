@@ -1,7 +1,6 @@
-from typing import Annotated
-
 from calendar import monthrange
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy import or_, select
@@ -42,9 +41,8 @@ class ProgramRepository(BaseRepository[Program]):
         year, month = map(int, cycle_reference.split("-"))
         last_day = monthrange(year, month)[1]
 
-        cycle_start = datetime(year, month, 1, 0, 0, 0, tzinfo=timezone.utc)
-        cycle_end = datetime(year, month, last_day, 23,
-                             59, 59, tzinfo=timezone.utc)
+        cycle_start = datetime(year, month, 1, 0, 0, 0, tzinfo=UTC)
+        cycle_end = datetime(year, month, last_day, 23, 59, 59, tzinfo=UTC)
 
         stmt = select(Program).where(
             Program.start_date <= cycle_end,

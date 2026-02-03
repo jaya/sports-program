@@ -220,7 +220,8 @@ async def test_notify_achievements_success(
         mock_program_repo,
         mock_achievement_repo
 ):
-    with patch("app.services.achievement_service.get_slack_client_for_program") as mock_get_client:
+    patch_target = "app.services.achievement_service.get_slack_client_for_program"
+    with patch(patch_target) as mock_get_client:
         mock_client = AsyncMock()
         mock_get_client.return_value.__aenter__.return_value = mock_client
 
@@ -264,7 +265,8 @@ async def test_notify_achievements_slack_error(
         mock_program_repo,
         mock_achievement_repo
 ):
-    with patch("app.services.achievement_service.get_slack_client_for_program") as mock_get_client:
+    patch_target = "app.services.achievement_service.get_slack_client_for_program"
+    with patch(patch_target) as mock_get_client:
         mock_client = AsyncMock()
         mock_client.chat_postMessage = AsyncMock(
             side_effect=Exception("Slack API Error"))

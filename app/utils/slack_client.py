@@ -1,6 +1,6 @@
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from slack_sdk.web.async_client import AsyncWebClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 async def get_slack_client_for_program(
     db: AsyncSession,
     program: Program,
-) -> AsyncGenerator[AsyncWebClient | None, None]:
+) -> AsyncGenerator[AsyncWebClient | None]:
     if not program.team_id and not program.enterprise_id:
         logger.warning(
             f"Program {program.id} ({program.name}) has no team_id or enterprise_id"

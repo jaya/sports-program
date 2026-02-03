@@ -12,7 +12,6 @@ from app.api.user_router import router as user_router
 from app.core.config import settings
 from app.core.database import engine
 from app.core.scheduler import start_scheduler, stop_scheduler
-
 from app.exceptions.business import (
     BusinessException,
     BusinessRuleViolationError,

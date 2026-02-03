@@ -27,10 +27,11 @@ async def test_close_cycle_success(async_client: AsyncClient):
 
     cycle_ref = f"{test_year}-{test_month:02d}"
 
+    start_dt = datetime(test_year, test_month, 1, 0, 0, 1, tzinfo=SAO_PAULO)
     program_payload = {
         "name": "Cycle Challenge",
         "slack_channel": "C_CYCLE_001",
-        "start_date": datetime(test_year, test_month, 1, 0, 0, 1, tzinfo=SAO_PAULO).isoformat(),
+        "start_date": start_dt.isoformat(),
     }
     resp = await async_client.post("/programs", json=program_payload)
     assert resp.status_code == 201
@@ -77,6 +78,6 @@ async def test_close_cycle_success(async_client: AsyncClient):
 
     assert close_data is not None, "close_cycle returned None"
     assert close_data["total_created"] == 0, (
-        f"Expected 0 (already created during activity registration), got {close_data.get('total_created', 'N/A')}"
+        f"Expected 0, got {close_data.get('total_created', 'N/A')}"
     )
     assert close_data["program_name"] == "Cycle Challenge"
