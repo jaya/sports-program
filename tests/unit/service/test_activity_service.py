@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from freezegun import freeze_time
@@ -18,6 +18,17 @@ from app.schemas.activity_schema import ActivityCreate, ActivityUpdate
 from app.services.activity_service import ActivityService
 from app.services.program_service import ProgramService
 from app.services.user_service import UserService
+
+
+@pytest.fixture
+def mock_slack_client():
+    with patch("app.services.activity_service.get_slack_client_for_program") as mock:
+        mock_client = AsyncMock()
+        mock.__aenter__ = AsyncMock(return_value=mock_client)
+        mock.__aexit__ = AsyncMock(return_value=None)
+        mock.return_value.__aenter__.return_value = mock_client
+        mock.return_value.__aexit__.return_value = None
+        yield mock_client
 
 
 @pytest.fixture
@@ -78,6 +89,7 @@ def program(today):
         id=1,
         name="Test Program",
         slack_channel="C123",
+        team_id="T123",
         start_date=datetime(today.year, 1, 1),
         end_date=datetime(today.year + 1, 1, 1),
     )
@@ -151,7 +163,7 @@ class TestActivityCreate:
         [
             ([], EntityNotFoundError, "Program"),
             (
-                [Program(id=1), Program(id=2)],
+                [Program(id=1, team_id="T1"), Program(id=2, team_id="T2")],
                 BusinessRuleViolationError,
                 "not possible to determine",
             ),
@@ -174,7 +186,6 @@ class TestActivityCreate:
                 ActivityCreate(description="R", performed_at=today),
                 "C",
                 "U",
-                mock_slack_client,
             ),
             expected_error,
             match,
