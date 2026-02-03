@@ -38,8 +38,10 @@ def _build_message(
 
     mentions = ", ".join(slack_mentions)
     message = (
-        f"{mentions}! Parabéns por completarem o desafio {program_name} "
-        f"no ciclo {cycle_reference}!"
+        f":tada: *Congratulations* {mentions}! :star2:\n\n"
+        f"You've successfully completed the *{program_name}* challenge "
+        f"for the *{cycle_reference}* cycle!\n\n"
+        f":trophy: Keep up the amazing work! :muscle:"
     )
 
     return message, user_names
