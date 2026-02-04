@@ -227,7 +227,8 @@ class AchievementService:
                     text=message,
                 )
             except Exception as e:
-                logger.error("Error sending Slack message", error=str(e), message=message, channel=program.slack_channel)
+                logger.error("Error sending Slack message",
+                             error=str(e), message=message, channel=program.slack_channel)
                 raise ExternalServiceError(
                     service="Slack", message="Failed to send notification"
                 ) from e
