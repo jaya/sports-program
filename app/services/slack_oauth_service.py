@@ -24,7 +24,8 @@ class SlackOAuthService:
             installation.team_id, installation.enterprise_id
         )
 
-        scope = ",".join(installation.bot_scopes) if installation.bot_scopes else None
+        scope = ",".join(
+            installation.bot_scopes) if installation.bot_scopes else None
 
         if not db_installation:
             db_installation = SlackInstallation(
@@ -90,7 +91,8 @@ class SlackOAuthService:
             bot_token=db_install.bot_token,
             bot_id=db_install.bot_id,
             bot_user_id=db_install.bot_user_id,
-            bot_scopes=(db_install.scope.split(",") if db_install.scope else []),
+            bot_scopes=(db_install.scope.split(",")
+                        if db_install.scope else []),
             user_id=db_install.installer_user_id,
             is_enterprise_install=db_install.is_enterprise_install,
         )

@@ -11,7 +11,11 @@ logger = structlog.get_logger()
 
 
 async def create_program_action(
-    service: ProgramService, name: str, slack_channel: str
+    service: ProgramService,
+    name: str,
+    slack_channel: str,
+    team_id: str | None = None,
+    enterprise_id: str | None = None,
 ) -> ProgramResponse:
     logger.info(
         "Creating program from Slack interaction",
@@ -24,6 +28,8 @@ async def create_program_action(
     program_create = ProgramCreate(
         name=name,
         slack_channel=slack_channel,
+        team_id=team_id,
+        enterprise_id=enterprise_id,
         start_date=start_date,
         end_date=end_date,
     )

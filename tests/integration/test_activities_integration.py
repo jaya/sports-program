@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime
 
 import pytest
 from httpx import AsyncClient
@@ -10,7 +10,7 @@ async def test_create_and_retrieve_activity(async_client: AsyncClient):
     program_payload = {
         "name": "Integration Challenge",
         "slack_channel": "C_TEST_001",
-        "start_date": datetime.now(UTC).isoformat(),
+        "start_date": datetime.now().isoformat(),
     }
     response = await async_client.post("/programs", json=program_payload)
     assert response.status_code == 201

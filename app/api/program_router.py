@@ -48,11 +48,11 @@ async def update_program(
 
 
 @router.post(
-    "/programs/{program_name}/close-cycle/{cycle_reference}",
+    "/programs/{program_id}/close-cycle/{cycle_reference}",
     response_model=AchievementBatchResponse | None,
     status_code=status.HTTP_200_OK,
 )
 async def close_cycle(
-    program_name: str, cycle_reference: str, service: CloseCycleServiceDep
+    program_id: int, cycle_reference: str, service: CloseCycleServiceDep
 ):
-    return await service.close_cycle(program_name, cycle_reference)
+    return await service.close_cycle(program_id, cycle_reference)

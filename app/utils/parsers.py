@@ -20,8 +20,13 @@ def parse_activity_date(text: str) -> tuple[str, datetime | None]:
         day = int(match.group(1))
         month = int(match.group(2))
         try:
-            # Assuming current year for the date
-            activity_date = datetime(date.today().year, month, day)
+            today = date.today()
+            year = today.year
+
+            if month > today.month:
+                year -= 1
+
+            activity_date = datetime(year, month, day)
             return description, activity_date
         except ValueError:
             return description, None

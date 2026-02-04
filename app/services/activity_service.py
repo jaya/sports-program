@@ -13,6 +13,7 @@ from app.exceptions.business import (
 )
 from app.models.achievement import Achievement
 from app.models.activity import Activity
+from app.models.program import Program
 from app.repositories.achievement_repository import AchievementRepository
 from app.repositories.activity_repository import ActivityRepository
 from app.schemas.activity_schema import (
@@ -25,6 +26,7 @@ from app.services.program_service import ProgramService
 from app.services.user_service import UserService
 from app.services.utils.reference_date import ReferenceDate
 from app.utils.date_validator import is_within_allowed_window
+from app.utils.slack_client import get_slack_client_for_program
 
 GOAL_ACTIVITIES = 12
 
@@ -58,10 +60,11 @@ class ActivityService:
             activity_description=activity_create.description,
         )
 
-        user_id = await self._validate_user(slack_id)
         program_found = await self._validate_program_by_slack_channel(
             program_slack_channel
         )
+
+        user_id = await self._validate_user(slack_id, program_found)
         performed_at = self._validate_performed_at(
             program_found, activity_create.performed_at
         )
@@ -147,7 +150,8 @@ class ActivityService:
             activity_update.performed_at is not None
             and activity_update.performed_at != db_activity.performed_at
         ):
-            self._validate_performed_at(program_found, activity_update.performed_at)
+            self._validate_performed_at(
+                program_found, activity_update.performed_at)
             existing_activity = await self.activity_repo.check_activity_same_day(
                 program_found.id, user_id, activity_update.performed_at.date(), id
             )
@@ -245,35 +249,43 @@ class ActivityService:
         )
 
     async def find_all_user_by_program_completed(
-        self, program_name: str, cycle_reference: str
+        self, program_id: int, cycle_reference: str
     ) -> list[int]:
         logger.info(
             "Checking completed users for program cycle",
-            program=program_name,
+            program=program_id,
             cycle=cycle_reference,
         )
-        program_found = await self.program_service.find_by_name(program_name)
-        if not program_found:
-            raise EntityNotFoundError("Program", program_name)
-
         ref = ReferenceDate.from_str(cycle_reference)
         return await self.activity_repo.find_users_with_completed_program(
-            program_found.id, ref.year, ref.month, GOAL_ACTIVITIES
+            program_id, ref.year, ref.month, GOAL_ACTIVITIES
         )
 
-    async def _validate_user(self, slack_id: str) -> int:
+    async def _validate_user(
+        self, slack_id: str, program: Program
+    ) -> int:
         user_found = await self.user_service.find_by_slack_id(slack_id)
         if user_found:
             return user_found.id
-        else:
-            try:
-                display_name = await self.user_service.get_slack_display_name(slack_id)
-            except Exception:
-                display_name = slack_id
-            new_user = await self.user_service.create(
-                UserCreate(slack_id=slack_id, display_name=display_name)
-            )
-            return new_user.id
+
+        # User not found, need to create - get display name from Slack
+        display_name = slack_id  # fallback
+
+        async with get_slack_client_for_program(self.db, program) as client:
+            if client:
+                try:
+                    display_name = await self.user_service.get_slack_display_name(
+                        slack_id, client
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Could not get display name", slack_id=slack_id, error=e)
+                    display_name = slack_id
+
+        new_user = await self.user_service.create(
+            UserCreate(slack_id=slack_id, display_name=display_name)
+        )
+        return new_user.id
 
     async def _validate_program_by_slack_channel(self, program_slack_channel: str):
         program_found = await self.program_service.find_by_slack_channel(
@@ -299,7 +311,8 @@ class ActivityService:
             performed_at = datetime.now()
 
         if performed_at > datetime.now():
-            raise BusinessRuleViolationError("Activity date cannot be in the future")
+            raise BusinessRuleViolationError(
+                "Activity date cannot be in the future")
 
         start_date = program_found.start_date
         if performed_at.tzinfo is None and start_date.tzinfo is not None:

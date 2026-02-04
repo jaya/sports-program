@@ -39,6 +39,9 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
     user_id = command.get("user_id")
     program_name = command.get("text")
 
+    team_id = context.team_id
+    enterprise_id = context.enterprise_id
+
     logger.info(
         "Slack command for program creation received",
         channel_id=channel_id,
@@ -65,7 +68,13 @@ async def handle_create_program(ack: Ack, command: dict, context: BoltContext):
 
     try:
         service = get_program_service(db)
-        program = await create_program_action(service, program_name, channel_id)
+        program = await create_program_action(
+            service,
+            program_name,
+            channel_id,
+            team_id=team_id,
+            enterprise_id=enterprise_id,
+        )
 
         blocks = create_program_success_blocks(
             program.name, program.slack_channel, program.start_date, program.end_date
