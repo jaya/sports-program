@@ -16,7 +16,12 @@ class BasicConfig(BaseSettings):
     SLACK_INSTALL_PATH: str = "/slack/install"
     SLACK_REDIRECT_URI_PATH: str = "/slack/oauth_redirect"
     SLACK_STATE_EXPIRATION_SECONDS: int = 600
-    DEBUG: bool = True
+
+    CRON_ENABLED: bool = True
+    CRON_DAY: int = 1
+    CRON_HOUR: int = 12
+    CRON_MINUTE: int = 0
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

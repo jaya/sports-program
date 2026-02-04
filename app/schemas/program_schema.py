@@ -16,10 +16,11 @@ class ProgramSimple(BaseModel):
 
 
 class ProgramCreate(ProgramBase):
-    pass
+    team_id: str | None = None
+    enterprise_id: str | None = None
 
 
-class ProgramUpdate(ProgramBase):
+class ProgramUpdate(BaseModel):
     name: str | None = None
     slack_channel: str | None = None
     start_date: datetime | None = None
@@ -30,6 +31,8 @@ class ProgramUpdate(ProgramBase):
 
 class ProgramResponse(ProgramBase):
     id: int
+    team_id: str | None = None
+    enterprise_id: str | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

@@ -3,14 +3,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 
-from app.api.achievement_router import router as achievement_router
 from app.api.activity_router import router as activity_router
+from app.api.admin_router import router as admin_router
 from app.api.health import router as health_router
 from app.api.program_router import router as program_router
 from app.api.slack_router import router as slack_router
 from app.api.user_router import router as user_router
 from app.core.config import settings
 from app.core.database import engine
+from app.core.scheduler import start_scheduler, stop_scheduler
 from app.exceptions.business import (
     BusinessException,
     BusinessRuleViolationError,
@@ -23,7 +24,9 @@ from app.exceptions.business import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    start_scheduler()
     yield
+    stop_scheduler()
     await engine.dispose()
 
 
@@ -31,13 +34,15 @@ def setup_exception_handlers(app: FastAPI):
     @app.exception_handler(EntityNotFoundError)
     async def not_found_handler(request, exc):
         return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND, content={"detail": exc.message}
+            status_code=status.HTTP_404_NOT_FOUND, content={
+                "detail": exc.message}
         )
 
     @app.exception_handler(DuplicateEntityError)
     async def duplicate_handler(request, exc):
         return JSONResponse(
-            status_code=status.HTTP_409_CONFLICT, content={"detail": exc.message}
+            status_code=status.HTTP_409_CONFLICT, content={
+                "detail": exc.message}
         )
 
     @app.exception_handler(BusinessRuleViolationError)
@@ -64,7 +69,8 @@ def setup_exception_handlers(app: FastAPI):
     @app.exception_handler(BusinessException)
     async def general_business_handler(request, exc):
         return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content={"detail": exc.message}
+            status_code=status.HTTP_400_BAD_REQUEST, content={
+                "detail": exc.message}
         )
 
 
@@ -78,8 +84,8 @@ app.include_router(health_router)
 app.include_router(user_router)
 app.include_router(activity_router)
 app.include_router(program_router)
-app.include_router(achievement_router)
 app.include_router(slack_router)
+app.include_router(admin_router)
 setup_exception_handlers(app)
 
 

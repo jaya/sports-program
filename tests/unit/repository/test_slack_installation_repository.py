@@ -11,7 +11,8 @@ from app.repositories.slack_installation_repository import SlackInstallationRepo
 async def test_slack_installation_repository_find_by_team_id():
     session = AsyncMock(spec=AsyncSession)
     repo = SlackInstallationRepository(session)
-    installation = SlackInstallation(id=1, team_id="T123", bot_token="xoxb-123")
+    installation = SlackInstallation(
+        id=1, team_id="T123", bot_token="xoxb-123")
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = installation
@@ -48,15 +49,53 @@ async def test_slack_installation_repository_find_org_wide_install():
 async def test_slack_installation_repository_get_by_team_or_enterprise_team_priority():
     session = AsyncMock(spec=AsyncSession)
     repo = SlackInstallationRepository(session)
-    installation = SlackInstallation(id=1, team_id="T123")
+
+    team_installation = SlackInstallation(id=1, team_id="T123")
+    enterprise_installation = SlackInstallation(id=2, enterprise_id="E123")
 
     mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = installation
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = [
+        team_installation, enterprise_installation]
+    mock_result.scalars.return_value = mock_scalars
     session.execute.return_value = mock_result
 
     result = await repo.get_by_team_or_enterprise("T123", "E123")
 
-    assert result == installation
+    assert result == team_installation
     assert result.team_id == "T123"
     # Should stop after finding by team
     assert session.execute.call_count == 1
+
+
+@pytest.mark.anyio
+async def test_slack_installation_repository_get_by_team_or_enterprise_single_result():
+    session = AsyncMock(spec=AsyncSession)
+    repo = SlackInstallationRepository(session)
+    installation = SlackInstallation(id=1, team_id="T123")
+
+    mock_result = MagicMock()
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = [installation]
+    mock_result.scalars.return_value = mock_scalars
+    session.execute.return_value = mock_result
+
+    result = await repo.get_by_team_or_enterprise("T123", None)
+
+    assert result == installation
+
+
+@pytest.mark.anyio
+async def test_slack_installation_repository_get_by_team_or_enterprise_no_result():
+    session = AsyncMock(spec=AsyncSession)
+    repo = SlackInstallationRepository(session)
+
+    mock_result = MagicMock()
+    mock_scalars = MagicMock()
+    mock_scalars.all.return_value = []
+    mock_result.scalars.return_value = mock_scalars
+    session.execute.return_value = mock_result
+
+    result = await repo.get_by_team_or_enterprise("T123", "E123")
+
+    assert result is None

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from freezegun import freeze_time
@@ -18,6 +18,17 @@ from app.schemas.activity_schema import ActivityCreate, ActivityUpdate
 from app.services.activity_service import ActivityService
 from app.services.program_service import ProgramService
 from app.services.user_service import UserService
+
+
+@pytest.fixture
+def mock_slack_client():
+    with patch("app.services.activity_service.get_slack_client_for_program") as mock:
+        mock_client = AsyncMock()
+        mock.__aenter__ = AsyncMock(return_value=mock_client)
+        mock.__aexit__ = AsyncMock(return_value=None)
+        mock.return_value.__aenter__.return_value = mock_client
+        mock.return_value.__aexit__.return_value = None
+        yield mock_client
 
 
 @pytest.fixture
@@ -78,6 +89,7 @@ def program(today):
         id=1,
         name="Test Program",
         slack_channel="C123",
+        team_id="T123",
         start_date=datetime(today.year, 1, 1),
         end_date=datetime(today.year + 1, 1, 1),
     )
@@ -123,14 +135,16 @@ class TestActivityCreate:
         activity_create = ActivityCreate(
             description="Run", performed_at=today, evidence_url="https://evidence.com"
         )
-        result = await activity_service.create(activity_create, "C123", "U123")
+        result = await activity_service.create(
+            activity_create, "C123", "U123"
+        )
 
         assert result.count_month == 5
         mock_activity_repo.create.assert_called_once()
         mock_activity_repo.count_monthly.assert_called_once()
 
     async def test_create_activity_auto_create_user(
-        self, activity_service, mock_user_service, setup_mocks, today
+        self, activity_service, mock_user_service, setup_mocks, today, mock_slack_client
     ):
         mock_user_service.find_by_slack_id.return_value = None
         mock_user_service.get_slack_display_name.return_value = "New User"
@@ -149,7 +163,7 @@ class TestActivityCreate:
         [
             ([], EntityNotFoundError, "Program"),
             (
-                [Program(id=1), Program(id=2)],
+                [Program(id=1, team_id="T1"), Program(id=2, team_id="T2")],
                 BusinessRuleViolationError,
                 "not possible to determine",
             ),
@@ -164,11 +178,14 @@ class TestActivityCreate:
         find_programs_return,
         expected_error,
         match,
+        mock_slack_client,
     ):
         mock_program_service.find_by_slack_channel.return_value = find_programs_return
         await _assert_error(
             activity_service.create(
-                ActivityCreate(description="R", performed_at=today), "C", "U"
+                ActivityCreate(description="R", performed_at=today),
+                "C",
+                "U",
             ),
             expected_error,
             match,
@@ -182,7 +199,9 @@ class TestActivityCreate:
         )
         await _assert_error(
             activity_service.create(
-                ActivityCreate(description="R", performed_at=today), "C", "U"
+                ActivityCreate(description="R", performed_at=today),
+                "C",
+                "U"
             ),
             BusinessRuleViolationError,
             "already registered",
@@ -196,7 +215,7 @@ class TestActivityCreate:
         ],
     )
     async def test_create_fails_on_date_validation(
-        self, activity_service, setup_mocks, today, delta, match
+        self, activity_service, setup_mocks, today, delta, match, mock_slack_client
     ):
         invalid_date = today + delta
 
@@ -217,7 +236,9 @@ class TestActivityCreate:
         mock_activity_repo.create.side_effect = Exception("DB Fail")
         await _assert_error(
             activity_service.create(
-                ActivityCreate(description="R", performed_at=today), "C", "U"
+                ActivityCreate(description="R", performed_at=today),
+                "C",
+                "U"
             ),
             DatabaseError,
         )
@@ -353,7 +374,7 @@ class TestActivityQuery:
             0
         ].id == 2
         assert (
-            await activity_service.find_all_user_by_program_completed("P", "2023-10")
+            await activity_service.find_all_user_by_program_completed(1, "2023-10")
         ) == [1]
         assert (await activity_service.find_by_id(1, "U")).id == 3
 
@@ -381,13 +402,6 @@ class TestActivityQuery:
                 EntityNotFoundError,
                 "User",
             ),
-            (
-                "find_all_user_by_program_completed",
-                ("P", "2023-10"),
-                "program_service.find_by_name",
-                EntityNotFoundError,
-                "Program",
-            ),
         ],
     )
     async def test_query_fails_when_not_found(
@@ -405,8 +419,6 @@ class TestActivityQuery:
             mock_activity_repo.find_by_id_and_slack_id.return_value = None
         elif "user_service" in mock_target:
             activity_service.user_service.find_by_slack_id.return_value = None
-        else:
-            activity_service.program_service.find_by_name.return_value = None
 
         await _assert_error(
             getattr(activity_service, method)(*args), expected_error, match

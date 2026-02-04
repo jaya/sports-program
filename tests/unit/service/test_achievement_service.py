@@ -23,6 +23,11 @@ from app.services.achievement_service import AchievementService
 
 
 @pytest.fixture
+def mock_db():
+    return AsyncMock()
+
+
+@pytest.fixture
 def mock_achievement_repo():
     return AsyncMock(spec=AchievementRepository)
 
@@ -44,12 +49,14 @@ def mock_activity_repo():
 
 @pytest.fixture
 def service(
+        mock_db,
         mock_achievement_repo,
         mock_user_repo,
         mock_program_repo,
         mock_activity_repo
 ):
     return AchievementService(
+        db=mock_db,
         achievement_repo=mock_achievement_repo,
         user_repo=mock_user_repo,
         program_repo=mock_program_repo,
@@ -179,11 +186,11 @@ async def test_achievement_service_create_batch_all_already_exist(
 
 @pytest.mark.anyio
 async def test_notify_achievements_program_not_found(service, mock_program_repo):
-    mock_program_repo.find_by_name.return_value = None
+    mock_program_repo.get_by_id.return_value = None
 
     with pytest.raises(EntityNotFoundError):
         await service.notify_achievements(
-            program_name="Unknown",
+            program_id=999,
             cycle_reference="2023-10"
         )
 
@@ -198,10 +205,10 @@ async def test_notify_achievements_no_pending(
     )
     mock_achievement_repo.find_pending_notification.return_value = []
 
-    result = await service.notify_achievements(
-        program_name="Test",
-        cycle_reference="2023-10"
-    )
+    mock_program_repo.get_by_id.return_value = Program(id=1, name="Test")
+    mock_achievement_repo.find_pending_notification.return_value = []
+
+    result = await service.notify_achievements(program_id=1, cycle_reference="2023-10")
 
     assert result.total_notified == 0
     assert "No pending" in result.message
@@ -213,8 +220,13 @@ async def test_notify_achievements_success(
         mock_program_repo,
         mock_achievement_repo
 ):
-    with patch("app.services.achievement_service.slack_app") as mock_slack:
-        program = Program(id=1, name="Challenge", slack_channel="C123")
+    patch_target = "app.services.achievement_service.get_slack_client_for_program"
+    with patch(patch_target) as mock_get_client:
+        mock_client = AsyncMock()
+        mock_get_client.return_value.__aenter__.return_value = mock_client
+
+        program = Program(id=1, name="Challenge",
+                          slack_channel="C123", team_id="T123")
         user1 = User(id=1, slack_id="U111", display_name="John")
         user2 = User(id=2, slack_id="U222", display_name="Jane")
 
@@ -228,15 +240,14 @@ async def test_notify_achievements_success(
         achievement2.user = user2
         achievement2.program = program
 
-        mock_program_repo.find_by_name.return_value = program
+        mock_program_repo.get_by_id.return_value = program
         mock_achievement_repo.find_pending_notification.return_value = [
             achievement1, achievement2
         ]
-        mock_slack.client.chat_postMessage = AsyncMock()
         mock_achievement_repo.mark_as_notified = AsyncMock()
 
         result = await service.notify_achievements(
-            program_name="Challenge", cycle_reference="2023-10"
+            program_id=1, cycle_reference="2023-10"
         )
 
         assert result.total_notified == 2
@@ -244,7 +255,7 @@ async def test_notify_achievements_success(
         assert "Jane" in result.users
         assert "<@U111>" in result.message
         assert "<@U222>" in result.message
-        mock_slack.client.chat_postMessage.assert_called_once()
+        mock_client.chat_postMessage.assert_called_once()
         mock_achievement_repo.mark_as_notified.assert_called_once_with([1, 2])
 
 
@@ -254,8 +265,15 @@ async def test_notify_achievements_slack_error(
         mock_program_repo,
         mock_achievement_repo
 ):
-    with patch("app.services.achievement_service.slack_app") as mock_slack:
-        program = Program(id=1, name="Challenge", slack_channel="C123")
+    patch_target = "app.services.achievement_service.get_slack_client_for_program"
+    with patch(patch_target) as mock_get_client:
+        mock_client = AsyncMock()
+        mock_client.chat_postMessage = AsyncMock(
+            side_effect=Exception("Slack API Error"))
+        mock_get_client.return_value.__aenter__.return_value = mock_client
+
+        program = Program(id=1, name="Challenge",
+                          slack_channel="C123", team_id="T123")
         user = User(id=1, slack_id="U111", display_name="John")
 
         achievement = MagicMock()
@@ -263,15 +281,13 @@ async def test_notify_achievements_slack_error(
         achievement.user = user
         achievement.program = program
 
-        mock_program_repo.find_by_name.return_value = program
-        mock_achievement_repo.find_pending_notification.return_value = [achievement]
-        mock_slack.client.chat_postMessage = AsyncMock(
-            side_effect=Exception("Slack API Error")
-        )
+        mock_program_repo.get_by_id.return_value = program
+        mock_achievement_repo.find_pending_notification.return_value = [
+            achievement]
 
         with pytest.raises(ExternalServiceError) as exc_info:
             await service.notify_achievements(
-                program_name="Challenge", cycle_reference="2023-10"
+                program_id=1, cycle_reference="2023-10"
             )
 
         assert "Slack" in str(exc_info.value.message)
@@ -285,20 +301,22 @@ async def test_close_cycle_success(
         mock_achievement_repo,
         mock_user_repo
 ):
+    program_id = 1
     program_name = "Challenge"
     cycle_reference = "2023-10"
-    program = Program(id=1, name=program_name)
+    program = Program(id=program_id, name=program_name)
     user_ids = [1, 2]
 
-    mock_program_repo.find_by_name.return_value = program
+    mock_program_repo.get_by_id.return_value = program
     mock_activity_repo.find_users_with_completed_program.return_value = user_ids
+
     mock_achievement_repo.find_existing_user_ids.return_value = set()
     mock_user_repo.find_all_by_ids.return_value = [
         User(id=1, display_name="User 1"),
         User(id=2, display_name="User 2"),
     ]
 
-    result = await service.close_cycle(program_name, cycle_reference)
+    result = await service.close_cycle(program_id, cycle_reference)
 
     assert isinstance(result, AchievementBatchResponse)
     assert result.total_created == 2
@@ -307,32 +325,34 @@ async def test_close_cycle_success(
     assert "User 1" in result.users
     assert "User 2" in result.users
 
-    mock_program_repo.find_by_name.assert_called_once_with(program_name)
+    mock_program_repo.get_by_id.assert_called_once_with(program_id)
     mock_activity_repo.find_users_with_completed_program.assert_called_once()
+
     mock_achievement_repo.create_many.assert_called_once()
 
 
 @pytest.mark.anyio
 async def test_close_cycle_program_not_found(service, mock_program_repo):
-    program_name = "Unknown"
-    mock_program_repo.find_by_name.return_value = None
+    program_id = 999
+    mock_program_repo.get_by_id.return_value = None
 
     with pytest.raises(EntityNotFoundError):
-        await service.close_cycle(program_name, "2023-10")
+        await service.close_cycle(program_id, "2023-10")
 
 
 @pytest.mark.anyio
 async def test_close_cycle_no_users_completed(
     service, mock_program_repo, mock_activity_repo
 ):
+    program_id = 1
     program_name = "Challenge"
     cycle_reference = "2023-10"
-    program = Program(id=1, name=program_name)
+    program = Program(id=program_id, name=program_name)
 
     mock_program_repo.find_by_name.return_value = program
     mock_activity_repo.find_users_with_completed_program.return_value = []
 
-    result = await service.close_cycle(program_name, cycle_reference)
+    result = await service.close_cycle(program_id, cycle_reference)
 
     assert result is None
     mock_activity_repo.find_users_with_completed_program.assert_called_once()

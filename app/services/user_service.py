@@ -1,8 +1,8 @@
 from typing import Annotated
 
 from fastapi import Depends
+from slack_sdk.web.async_client import AsyncWebClient
 
-from app.core.slack import slack_app
 from app.exceptions.business import (
     DatabaseError,
     DuplicateEntityError,
@@ -20,8 +20,10 @@ class UserService:
     ):
         self.user_repo = user_repo
 
-    async def get_slack_display_name(self, slack_id: str) -> str:
-        response = await slack_app.client.users_info(user=slack_id)
+    async def get_slack_display_name(
+        self, slack_id: str, client: AsyncWebClient
+    ) -> str:
+        response = await client.users_info(user=slack_id)
 
         if not response["ok"]:
             error = response.get("error", "unknown_error")

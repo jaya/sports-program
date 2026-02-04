@@ -147,7 +147,8 @@ async def test_update_program_not_found(program_service, mock_program_repo):
 @pytest.mark.anyio
 async def test_update_program_duplicate_name(program_service, mock_program_repo):
     program_id = 1
-    existing_program = Program(id=program_id, name="My Program", slack_channel="C1")
+    existing_program = Program(
+        id=program_id, name="My Program", slack_channel="C1")
     other_program = Program(id=2, name="Duplicate Name", slack_channel="C1")
     program_update = ProgramUpdate(name="Duplicate Name")
 
@@ -264,6 +265,8 @@ async def test_create_program_sets_start_date_to_beginning_of_day(
         mock_instance = mock_program_class.return_value
         mock_instance.name = "Test Program"
         mock_instance.slack_channel = "C12345"
+        mock_instance.team_id = None
+        mock_instance.enterprise_id = None
         mock_instance.start_date = input_date
         mock_instance.end_date = None
         mock_instance.id = 1
@@ -298,6 +301,8 @@ async def test_update_program_sets_start_date_to_beginning_of_day(
     db_program.id = 1
     db_program.name = "Old Name"
     db_program.slack_channel = "C123"
+    db_program.team_id = None
+    db_program.enterprise_id = None
     db_program.start_date = datetime(2026, 1, 19, 0, 0, 0)
     db_program.end_date = None
     db_program.created_at = datetime.now()
