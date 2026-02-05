@@ -210,15 +210,13 @@ class AchievementService:
             users=user_names,
         )
 
-    async def _send_slack_notification(
-        self, program: Program, message: str
-    ) -> None:
+    async def _send_slack_notification(self, program: Program, message: str) -> None:
         async with get_slack_client_for_program(self.db, program) as client:
             if not client:
                 raise ExternalServiceError(
                     service="Slack",
                     message=f"Could not get client for program {program.name}. "
-                    "Check if team_id/enterprise_id is set and installation exists."
+                    "Check if team_id/enterprise_id is set and installation exists.",
                 )
 
             try:
@@ -227,8 +225,12 @@ class AchievementService:
                     text=message,
                 )
             except Exception as e:
-                logger.error("Error sending Slack message",
-                             error=str(e), message=message, channel=program.slack_channel)
+                logger.error(
+                    "Error sending Slack message",
+                    error=str(e),
+                    message=message,
+                    channel=program.slack_channel,
+                )
                 raise ExternalServiceError(
                     service="Slack", message="Failed to send notification"
                 ) from e
@@ -247,7 +249,8 @@ class AchievementService:
 
         ref = ReferenceDate.from_str(cycle_reference)
         user_ids = await self.activity_repo.find_users_with_completed_program(
-            program.id, ref.year, ref.month, GOAL_ACTIVITIES)
+            program.id, ref.year, ref.month, GOAL_ACTIVITIES
+        )
 
         if not user_ids:
             logger.debug(

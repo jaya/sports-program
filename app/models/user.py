@@ -15,9 +15,12 @@ class User(Base):
     slack_id: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     display_name: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now())
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     activities: Mapped[list["Activity"]] = relationship(
-        "Activity", back_populates="user")
+        "Activity", back_populates="user"
+    )
     achievements: Mapped[list["Achievement"]] = relationship(
-        "Achievement", back_populates="user")
+        "Achievement", back_populates="user"
+    )

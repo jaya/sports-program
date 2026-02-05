@@ -20,6 +20,7 @@ async def test_base_repository_create():
     session.refresh.assert_called_once_with(obj)
     assert result == obj
 
+
 @pytest.mark.anyio
 async def test_base_repository_create_rollback_on_exception():
     session = AsyncMock(spec=AsyncSession)
@@ -31,6 +32,7 @@ async def test_base_repository_create_rollback_on_exception():
         await repo.create(obj)
 
     session.rollback.assert_called_once()
+
 
 @pytest.mark.anyio
 async def test_base_repository_get_by_id():
@@ -47,6 +49,7 @@ async def test_base_repository_get_by_id():
     session.execute.assert_called_once()
     assert result == obj
 
+
 @pytest.mark.anyio
 async def test_base_repository_get_all():
     session = AsyncMock(spec=AsyncSession)
@@ -62,6 +65,7 @@ async def test_base_repository_get_all():
     session.execute.assert_called_once()
     assert result == objs
 
+
 @pytest.mark.anyio
 async def test_base_repository_update_success():
     session = AsyncMock(spec=AsyncSession)
@@ -75,6 +79,7 @@ async def test_base_repository_update_success():
     session.refresh.assert_called_once_with(obj)
     assert result == obj
 
+
 @pytest.mark.anyio
 async def test_base_repository_update_rollback_on_exception():
     session = AsyncMock(spec=AsyncSession)
@@ -86,6 +91,7 @@ async def test_base_repository_update_rollback_on_exception():
         await repo.update(obj)
 
     session.rollback.assert_called_once()
+
 
 @pytest.mark.anyio
 async def test_base_repository_create_many():
@@ -99,6 +105,7 @@ async def test_base_repository_create_many():
     session.commit.assert_called_once()
     assert result == objs
 
+
 @pytest.mark.anyio
 async def test_base_repository_create_many_empty():
     session = AsyncMock(spec=AsyncSession)
@@ -108,6 +115,7 @@ async def test_base_repository_create_many_empty():
 
     session.add_all.assert_not_called()
     assert result == []
+
 
 @pytest.mark.anyio
 async def test_base_repository_create_many_rollback_on_exception():

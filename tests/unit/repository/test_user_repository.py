@@ -23,6 +23,7 @@ async def test_user_repository_find_by_slack_id():
     assert result == user
     assert result.slack_id == "U123"
 
+
 @pytest.mark.anyio
 async def test_user_repository_find_by_slack_id_not_found():
     session = AsyncMock(spec=AsyncSession)

@@ -147,8 +147,7 @@ async def test_update_program_not_found(program_service, mock_program_repo):
 @pytest.mark.anyio
 async def test_update_program_duplicate_name(program_service, mock_program_repo):
     program_id = 1
-    existing_program = Program(
-        id=program_id, name="My Program", slack_channel="C1")
+    existing_program = Program(id=program_id, name="My Program", slack_channel="C1")
     other_program = Program(id=2, name="Duplicate Name", slack_channel="C1")
     program_update = ProgramUpdate(name="Duplicate Name")
 

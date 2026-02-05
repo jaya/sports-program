@@ -43,10 +43,7 @@ class ProgramRepository(BaseRepository[Program]):
 
         stmt = select(Program).where(
             Program.start_date <= cycle_end,
-            or_(
-                Program.end_date.is_(None),
-                Program.end_date >= cycle_start
-            )
+            or_(Program.end_date.is_(None), Program.end_date >= cycle_start),
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())

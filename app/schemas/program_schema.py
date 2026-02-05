@@ -26,7 +26,7 @@ class ProgramUpdate(BaseModel):
     start_date: datetime | None = None
     end_date: datetime | None = None
 
-    model_config = ConfigDict(extra='forbid')
+    model_config = ConfigDict(extra="forbid")
 
 
 class ProgramResponse(ProgramBase):

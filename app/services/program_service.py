@@ -31,8 +31,7 @@ class ProgramService:
         if program_found:
             raise DuplicateEntityError("Program", "name", program.name)
         if program.end_date is not None and program.end_date <= program.start_date:
-            raise BusinessRuleViolationError(
-                "Start Date greater then End Date")
+            raise BusinessRuleViolationError("Start Date greater then End Date")
 
         db_program = Program(
             name=program.name,
@@ -73,8 +72,7 @@ class ProgramService:
         if program_update.name and program_update.name != db_program.name:
             existing = await self.program_repo.find_by_name(program_update.name)
             if existing and existing.id != id:
-                raise DuplicateEntityError(
-                    "Program", "name", program_update.name)
+                raise DuplicateEntityError("Program", "name", program_update.name)
 
         update_data = program_update.model_dump(exclude_unset=True)
 
@@ -87,8 +85,7 @@ class ProgramService:
         end_date = update_data.get("end_date", db_program.end_date)
 
         if start_date and end_date and start_date > end_date:
-            raise BusinessRuleViolationError(
-                "Start Date greater than End Date")
+            raise BusinessRuleViolationError("Start Date greater than End Date")
 
         for key, value in update_data.items():
             setattr(db_program, key, value)

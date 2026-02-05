@@ -150,8 +150,7 @@ class ActivityService:
             activity_update.performed_at is not None
             and activity_update.performed_at != db_activity.performed_at
         ):
-            self._validate_performed_at(
-                program_found, activity_update.performed_at)
+            self._validate_performed_at(program_found, activity_update.performed_at)
             existing_activity = await self.activity_repo.check_activity_same_day(
                 program_found.id, user_id, activity_update.performed_at.date(), id
             )
@@ -261,9 +260,7 @@ class ActivityService:
             program_id, ref.year, ref.month, GOAL_ACTIVITIES
         )
 
-    async def _validate_user(
-        self, slack_id: str, program: Program
-    ) -> int:
+    async def _validate_user(self, slack_id: str, program: Program) -> int:
         user_found = await self.user_service.find_by_slack_id(slack_id)
         if user_found:
             return user_found.id
@@ -279,7 +276,8 @@ class ActivityService:
                     )
                 except Exception as e:
                     logger.warning(
-                        "Could not get display name", slack_id=slack_id, error=e)
+                        "Could not get display name", slack_id=slack_id, error=e
+                    )
                     display_name = slack_id
 
         new_user = await self.user_service.create(
@@ -311,8 +309,7 @@ class ActivityService:
             performed_at = datetime.now()
 
         if performed_at > datetime.now():
-            raise BusinessRuleViolationError(
-                "Activity date cannot be in the future")
+            raise BusinessRuleViolationError("Activity date cannot be in the future")
 
         start_date = program_found.start_date
         if performed_at.tzinfo is None and start_date.tzinfo is not None:

@@ -14,18 +14,19 @@ class Program(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     slack_channel: Mapped[str] = mapped_column(String, nullable=False)
-    team_id: Mapped[str | None] = mapped_column(
-        String, nullable=True, index=True)
-    enterprise_id: Mapped[str | None] = mapped_column(
-        String, nullable=True, index=True)
+    team_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    enterprise_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     start_date: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False)
-    end_date: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=True)
+        DateTime(timezone=True), nullable=False
+    )
+    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now())
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     activities: Mapped[list["Activity"]] = relationship(
-        "Activity", back_populates="program")
+        "Activity", back_populates="program"
+    )
     achievements: Mapped[list["Achievement"]] = relationship(
-        "Achievement", back_populates="program")
+        "Achievement", back_populates="program"
+    )
