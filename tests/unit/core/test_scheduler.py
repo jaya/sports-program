@@ -6,7 +6,6 @@ from app.core.scheduler import monthly_job, start_scheduler, stop_scheduler
 
 
 class TestMonthlyJob:
-
     @pytest.mark.anyio
     async def test_monthly_job_success(self):
         mock_session = AsyncMock()
@@ -22,20 +21,13 @@ class TestMonthlyJob:
         mock_async_session.return_value.__aenter__ = AsyncMock(
             return_value=mock_session
         )
-        mock_async_session.return_value.__aexit__ = AsyncMock(
-            return_value=None)
+        mock_async_session.return_value.__aexit__ = AsyncMock(return_value=None)
 
         with (
             patch("app.core.database.async_session", mock_async_session),
-            patch(
-                "app.repositories.program_repository.ProgramRepository"
-            ),
-            patch(
-                "app.repositories.achievement_repository.AchievementRepository"
-            ),
-            patch(
-                "app.repositories.activity_repository.ActivityRepository"
-            ),
+            patch("app.repositories.program_repository.ProgramRepository"),
+            patch("app.repositories.achievement_repository.AchievementRepository"),
+            patch("app.repositories.activity_repository.ActivityRepository"),
             patch("app.repositories.user_repository.UserRepository"),
             patch("app.services.achievement_service.AchievementService"),
             patch(
@@ -52,27 +44,19 @@ class TestMonthlyJob:
         mock_session = AsyncMock()
 
         mock_cron_service = AsyncMock()
-        mock_cron_service.run_monthly_job.side_effect = Exception(
-            "Database error")
+        mock_cron_service.run_monthly_job.side_effect = Exception("Database error")
 
         mock_async_session = MagicMock()
         mock_async_session.return_value.__aenter__ = AsyncMock(
             return_value=mock_session
         )
-        mock_async_session.return_value.__aexit__ = AsyncMock(
-            return_value=None)
+        mock_async_session.return_value.__aexit__ = AsyncMock(return_value=None)
 
         with (
             patch("app.core.database.async_session", mock_async_session),
-            patch(
-                "app.repositories.program_repository.ProgramRepository"
-            ),
-            patch(
-                "app.repositories.achievement_repository.AchievementRepository"
-            ),
-            patch(
-                "app.repositories.activity_repository.ActivityRepository"
-            ),
+            patch("app.repositories.program_repository.ProgramRepository"),
+            patch("app.repositories.achievement_repository.AchievementRepository"),
+            patch("app.repositories.activity_repository.ActivityRepository"),
             patch("app.repositories.user_repository.UserRepository"),
             patch("app.services.achievement_service.AchievementService"),
             patch(
@@ -87,7 +71,6 @@ class TestMonthlyJob:
 
 
 class TestStartScheduler:
-
     def test_start_scheduler_when_disabled(self):
         mock_settings = MagicMock()
         mock_settings.CRON_ENABLED = False
@@ -140,7 +123,6 @@ class TestStartScheduler:
 
 
 class TestStopScheduler:
-
     def test_stop_scheduler_when_running(self):
         with (
             patch("app.core.scheduler.scheduler") as mock_scheduler,

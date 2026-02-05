@@ -11,8 +11,7 @@ from app.repositories.slack_installation_repository import SlackInstallationRepo
 async def test_slack_installation_repository_find_by_team_id():
     session = AsyncMock(spec=AsyncSession)
     repo = SlackInstallationRepository(session)
-    installation = SlackInstallation(
-        id=1, team_id="T123", bot_token="xoxb-123")
+    installation = SlackInstallation(id=1, team_id="T123", bot_token="xoxb-123")
 
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = installation
@@ -55,8 +54,7 @@ async def test_slack_installation_repository_get_by_team_or_enterprise_team_prio
 
     mock_result = MagicMock()
     mock_scalars = MagicMock()
-    mock_scalars.all.return_value = [
-        team_installation, enterprise_installation]
+    mock_scalars.all.return_value = [team_installation, enterprise_installation]
     mock_result.scalars.return_value = mock_scalars
     session.execute.return_value = mock_result
 

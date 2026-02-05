@@ -42,8 +42,7 @@ async def test_close_cycle_success(async_client: AsyncClient):
     headers = {"x-slack-user-id": "U_CYCLE_001"}
 
     for day in range(2, 15):
-        activity_date = datetime(
-            test_year, test_month, day, 12, 0, 0, tzinfo=SAO_PAULO)
+        activity_date = datetime(test_year, test_month, day, 12, 0, 0, tzinfo=SAO_PAULO)
 
         payload = {
             "description": f"Run day {day}",
@@ -60,13 +59,11 @@ async def test_close_cycle_success(async_client: AsyncClient):
 
     # 4. Verify activities were created by checking user's activities
     activities_resp = await async_client.get(
-        f"/programs/C_CYCLE_001/activities?reference_date={cycle_ref}",
-        headers=headers
+        f"/programs/C_CYCLE_001/activities?reference_date={cycle_ref}", headers=headers
     )
     assert activities_resp.status_code == 200
     activities = activities_resp.json()
-    assert len(
-        activities) == 13, f"Expected 13 activities, got {len(activities)}"
+    assert len(activities) == 13, f"Expected 13 activities, got {len(activities)}"
 
     # 5. Close the Cycle
     close_resp = await async_client.post(

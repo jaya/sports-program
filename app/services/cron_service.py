@@ -1,7 +1,7 @@
-import logging
 from datetime import UTC, datetime
 from typing import Annotated
 
+import structlog
 from fastapi import Depends
 
 from app.repositories.program_repository import ProgramRepository
@@ -27,13 +27,13 @@ class CronService:
     ):
         self.program_repo = program_repo
         self.achievement_service = achievement_service
-        self.logger = logging.getLogger(__name__)
+        self.logger = structlog.get_logger()
 
     async def close_all_cycles(self, cycle_reference: str | None = None) -> dict:
         if cycle_reference is None:
             cycle_reference = _get_previous_month_reference()
 
-        self.logger.info(f"Starting close_all_cycles for {cycle_reference}")
+        self.logger.info("Starting close_all_cycles", cycle_reference=cycle_reference)
 
         programs = await self.program_repo.find_active_in_cycle(cycle_reference)
         results = {
@@ -50,31 +50,39 @@ class CronService:
                     cycle_reference=cycle_reference,
                 )
                 if result:
-                    results["success"].append({
-                        "program_id": program.id,
-                        "program_name": program.name,
-                        "achievements_created": result.total_created,
-                    })
+                    results["success"].append(
+                        {
+                            "program_id": program.id,
+                            "program_name": program.name,
+                            "achievements_created": result.total_created,
+                        }
+                    )
                 else:
-                    results["success"].append({
-                        "program_id": program.id,
-                        "program_name": program.name,
-                        "achievements_created": 0,
-                    })
+                    results["success"].append(
+                        {
+                            "program_id": program.id,
+                            "program_name": program.name,
+                            "achievements_created": 0,
+                        }
+                    )
             except Exception as e:
                 self.logger.error(
-                    f"Error closing cycle for program {program.id}: {e}"
+                    "Error closing cycle for program", program_id=program.id, error=e
                 )
-                results["errors"].append({
-                    "program_id": program.id,
-                    "program_name": program.name,
-                    "error": str(e),
-                })
+                results["errors"].append(
+                    {
+                        "program_id": program.id,
+                        "program_name": program.name,
+                        "error": str(e),
+                    }
+                )
 
         self.logger.info(
-            f"close_all_cycles completed: {len(results['success'])} success, "
-            f"{len(results['errors'])} errors"
+            "close_all_cycles completed success",
+            results_sucesses=len(results["success"]),
+            results_errors={len(results["errors"])},
         )
+
         return results
 
     async def notify_all_achievements(self, cycle_reference: str | None = None) -> dict:
@@ -82,7 +90,8 @@ class CronService:
             cycle_reference = _get_previous_month_reference()
 
         self.logger.info(
-            f"Starting notify_all_achievements for {cycle_reference}")
+            "Starting notify_all_achievements", cycle_reference=cycle_reference
+        )
 
         programs = await self.program_repo.find_active_in_cycle(cycle_reference)
         results = {
@@ -98,24 +107,31 @@ class CronService:
                     program_id=program.id,
                     cycle_reference=cycle_reference,
                 )
-                results["success"].append({
-                    "program_id": program.id,
-                    "program_name": program.name,
-                    "total_notified": result.total_notified,
-                })
+                results["success"].append(
+                    {
+                        "program_id": program.id,
+                        "program_name": program.name,
+                        "total_notified": result.total_notified,
+                    }
+                )
             except Exception as e:
                 self.logger.error(
-                    f"Error notifying achievements for program {program.id}: {e}"
+                    "Error notifying achievements for program",
+                    program_id=program.id,
+                    error=e,
                 )
-                results["errors"].append({
-                    "program_id": program.id,
-                    "program_name": program.name,
-                    "error": str(e),
-                })
+                results["errors"].append(
+                    {
+                        "program_id": program.id,
+                        "program_name": program.name,
+                        "error": str(e),
+                    }
+                )
 
         self.logger.info(
-            f"notify_all_achievements completed: {len(results['success'])} success, "
-            f"{len(results['errors'])} errors"
+            "notify_all_achievements completed",
+            results_success={len(results["success"])},
+            results_errors=len(results["errors"]),
         )
         return results
 
@@ -123,7 +139,7 @@ class CronService:
         if cycle_reference is None:
             cycle_reference = _get_previous_month_reference()
 
-        self.logger.info(f"Starting monthly job for {cycle_reference}")
+        self.logger.info("Starting monthly job for", cycle_reference=cycle_reference)
 
         close_results = await self.close_all_cycles(cycle_reference)
 
@@ -135,5 +151,5 @@ class CronService:
             "notify": notify_results,
         }
 
-        self.logger.info(f"Monthly job completed for {cycle_reference}")
+        self.logger.info("Monthly job completed for", cycle_reference=cycle_reference)
         return combined_results

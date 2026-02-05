@@ -114,9 +114,7 @@ def setup_mocks(
     mock_activity_repo.count_monthly.return_value = 5
     mock_achievement_repo.user_has_achievement.return_value = False
 
-    mock_activity_repo.create.side_effect = lambda act: setattr(
-        act, "id", 1
-    )
+    mock_activity_repo.create.side_effect = lambda act: setattr(act, "id", 1)
     return {"user": user, "program": program}
 
 
@@ -135,9 +133,7 @@ class TestActivityCreate:
         activity_create = ActivityCreate(
             description="Run", performed_at=today, evidence_url="https://evidence.com"
         )
-        result = await activity_service.create(
-            activity_create, "C123", "U123"
-        )
+        result = await activity_service.create(activity_create, "C123", "U123")
 
         assert result.count_month == 5
         mock_activity_repo.create.assert_called_once()
@@ -153,8 +149,7 @@ class TestActivityCreate:
         )
 
         await activity_service.create(
-            ActivityCreate(description="Run",
-                           performed_at=today), "C123", "U_NEW"
+            ActivityCreate(description="Run", performed_at=today), "C123", "U_NEW"
         )
         mock_user_service.create.assert_called_once()
 
@@ -194,14 +189,10 @@ class TestActivityCreate:
     async def test_create_fails_when_activity_already_exists(
         self, activity_service, setup_mocks, today, mock_activity_repo
     ):
-        mock_activity_repo.check_activity_same_day.return_value = Activity(
-            id=99
-        )
+        mock_activity_repo.check_activity_same_day.return_value = Activity(id=99)
         await _assert_error(
             activity_service.create(
-                ActivityCreate(description="R", performed_at=today),
-                "C",
-                "U"
+                ActivityCreate(description="R", performed_at=today), "C", "U"
             ),
             BusinessRuleViolationError,
             "already registered",
@@ -220,8 +211,7 @@ class TestActivityCreate:
         invalid_date = today + delta
 
         async def call_create():
-            activity_create = ActivityCreate(
-                description="R", performed_at=invalid_date)
+            activity_create = ActivityCreate(description="R", performed_at=invalid_date)
             await activity_service.create(activity_create, "C", "U")
 
         await _assert_error(
@@ -236,9 +226,7 @@ class TestActivityCreate:
         mock_activity_repo.create.side_effect = Exception("DB Fail")
         await _assert_error(
             activity_service.create(
-                ActivityCreate(description="R", performed_at=today),
-                "C",
-                "U"
+                ActivityCreate(description="R", performed_at=today), "C", "U"
             ),
             DatabaseError,
         )
@@ -262,16 +250,14 @@ class TestActivityUpdate:
     @pytest.mark.parametrize(
         "mock_target, mock_value, expected_error, match",
         [
-            ("mock_user_service.find_by_slack_id",
-             None, EntityNotFoundError, "User"),
+            ("mock_user_service.find_by_slack_id", None, EntityNotFoundError, "User"),
             (
                 "mock_activity_repo.find_by_id_and_slack_id",
                 None,
                 EntityNotFoundError,
                 "Activity",
             ),
-            ("mock_program_service.find_by_id",
-             None, EntityNotFoundError, "Program"),
+            ("mock_program_service.find_by_id", None, EntityNotFoundError, "Program"),
         ],
     )
     async def test_update_fails_on_entity_not_found(
@@ -287,9 +273,7 @@ class TestActivityUpdate:
         match,
     ):
         if "activity_repo" in mock_target:
-            mock_activity_repo.find_by_id_and_slack_id.return_value = (
-                mock_value
-            )
+            mock_activity_repo.find_by_id_and_slack_id.return_value = mock_value
         else:
             obj_name, method_name = mock_target.split(".")
             getattr(locals()[obj_name], method_name).return_value = mock_value
@@ -306,13 +290,10 @@ class TestActivityUpdate:
         mock_activity_repo.find_by_id_and_slack_id.return_value = Activity(
             id=1, program_id=1, performed_at=today - timedelta(days=1), user_id=1
         )
-        mock_activity_repo.check_activity_same_day.return_value = Activity(
-            id=99
-        )
+        mock_activity_repo.check_activity_same_day.return_value = Activity(id=99)
 
         await _assert_error(
-            activity_service.update(
-                ActivityUpdate(performed_at=today), 1, "U"),
+            activity_service.update(ActivityUpdate(performed_at=today), 1, "U"),
             BusinessRuleViolationError,
             "already registered",
         )
@@ -364,8 +345,7 @@ class TestActivityQuery:
     ):
         repo = mock_activity_repo
         repo.find_by_user_id_and_date.return_value = [Activity(id=1)]
-        repo.find_by_user_id_and_slack_channel_and_date.return_value = [
-            Activity(id=2)]
+        repo.find_by_user_id_and_slack_channel_and_date.return_value = [Activity(id=2)]
         repo.find_users_with_completed_program.return_value = [1]
         repo.find_by_id_and_slack_id.return_value = Activity(id=3)
 
@@ -443,8 +423,7 @@ class TestActivityTimezone:
         )
 
         await activity_service.create(
-            ActivityCreate(description="R",
-                           performed_at=performed_at), "C", "U"
+            ActivityCreate(description="R", performed_at=performed_at), "C", "U"
         )
         created = mock_activity_repo.create.call_args[0][0]
         assert created.performed_at.tzinfo == tz
@@ -471,8 +450,7 @@ class TestCreateRetroactiveAchievement:
 
             # Setup mocks
             mock_user_service.find_by_slack_id.return_value = user
-            mock_program_service.find_by_slack_channel.return_value = [
-                program_2025]
+            mock_program_service.find_by_slack_channel.return_value = [program_2025]
             mock_activity_repo.check_activity_same_day.return_value = None
             mock_activity_repo.count_monthly.return_value = 12
             mock_achievement_repo.user_has_achievement.return_value = False
@@ -520,8 +498,7 @@ class TestCreateRetroactiveAchievement:
             )
 
             mock_user_service.find_by_slack_id.return_value = user
-            mock_program_service.find_by_slack_channel.return_value = [
-                program_2025]
+            mock_program_service.find_by_slack_channel.return_value = [program_2025]
             mock_activity_repo.check_activity_same_day.return_value = None
             mock_activity_repo.count_monthly.return_value = 11
 
@@ -560,8 +537,7 @@ class TestCreateRetroactiveAchievement:
             )
 
             mock_user_service.find_by_slack_id.return_value = user
-            mock_program_service.find_by_slack_channel.return_value = [
-                program_2026]
+            mock_program_service.find_by_slack_channel.return_value = [program_2026]
             mock_activity_repo.check_activity_same_day.return_value = None
             mock_activity_repo.count_monthly.return_value = 12
 
@@ -600,8 +576,7 @@ class TestCreateRetroactiveAchievement:
             )
 
             mock_user_service.find_by_slack_id.return_value = user
-            mock_program_service.find_by_slack_channel.return_value = [
-                program_2025]
+            mock_program_service.find_by_slack_channel.return_value = [program_2025]
             mock_activity_repo.check_activity_same_day.return_value = None
             mock_activity_repo.count_monthly.return_value = 12
             mock_achievement_repo.user_has_achievement.return_value = True
@@ -644,8 +619,7 @@ class TestCreateRetroactiveAchievement:
             )
 
             mock_user_service.find_by_slack_id.return_value = user
-            mock_program_service.find_by_slack_channel.return_value = [
-                program_2025]
+            mock_program_service.find_by_slack_channel.return_value = [program_2025]
             mock_activity_repo.check_activity_same_day.return_value = None
             mock_activity_repo.count_monthly.return_value = 12
             mock_achievement_repo.user_has_achievement.return_value = False

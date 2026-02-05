@@ -60,9 +60,7 @@ def slack_installation():
 async def test_get_slack_client_for_program_success(
     mock_db, program_with_team_id, slack_installation
 ):
-    with patch(
-        "app.utils.slack_client.SlackInstallationRepository"
-    ) as mock_repo_class:
+    with patch("app.utils.slack_client.SlackInstallationRepository") as mock_repo_class:
         mock_repo = AsyncMock()
         mock_repo.get_by_team_or_enterprise.return_value = slack_installation
         mock_repo_class.return_value = mock_repo
@@ -73,8 +71,7 @@ async def test_get_slack_client_for_program_success(
             assert client is not None
             assert client.token == "xoxb-test-token"
 
-        mock_repo.get_by_team_or_enterprise.assert_called_once_with(
-            "T123", None)
+        mock_repo.get_by_team_or_enterprise.assert_called_once_with("T123", None)
 
 
 @pytest.mark.anyio
@@ -84,9 +81,7 @@ async def test_get_slack_client_for_program_with_enterprise_id(
     slack_installation.team_id = None
     slack_installation.enterprise_id = "E456"
 
-    with patch(
-        "app.utils.slack_client.SlackInstallationRepository"
-    ) as mock_repo_class:
+    with patch("app.utils.slack_client.SlackInstallationRepository") as mock_repo_class:
         mock_repo = AsyncMock()
         mock_repo.get_by_team_or_enterprise.return_value = slack_installation
         mock_repo_class.return_value = mock_repo
@@ -96,8 +91,7 @@ async def test_get_slack_client_for_program_with_enterprise_id(
         ) as client:
             assert client is not None
 
-        mock_repo.get_by_team_or_enterprise.assert_called_once_with(
-            None, "E456")
+        mock_repo.get_by_team_or_enterprise.assert_called_once_with(None, "E456")
 
 
 @pytest.mark.anyio
@@ -112,9 +106,7 @@ async def test_get_slack_client_for_program_no_ids_returns_none(
 async def test_get_slack_client_for_program_installation_not_found(
     mock_db, program_with_team_id
 ):
-    with patch(
-        "app.utils.slack_client.SlackInstallationRepository"
-    ) as mock_repo_class:
+    with patch("app.utils.slack_client.SlackInstallationRepository") as mock_repo_class:
         mock_repo = AsyncMock()
         mock_repo.get_by_team_or_enterprise.return_value = None
         mock_repo_class.return_value = mock_repo
@@ -139,9 +131,7 @@ async def test_get_slack_client_for_program_closes_session():
         bot_user_id="U123",
     )
 
-    with patch(
-        "app.utils.slack_client.SlackInstallationRepository"
-    ) as mock_repo_class:
+    with patch("app.utils.slack_client.SlackInstallationRepository") as mock_repo_class:
         mock_repo = AsyncMock()
         mock_repo.get_by_team_or_enterprise.return_value = installation
         mock_repo_class.return_value = mock_repo

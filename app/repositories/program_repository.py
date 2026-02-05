@@ -21,13 +21,10 @@ class ProgramRepository(BaseRepository[Program]):
         return result.scalar_one_or_none()
 
     async def find_by_name_and_slack_channel(
-            self,
-            name: str,
-            slack_channel: str
+        self, name: str, slack_channel: str
     ) -> Program | None:
         stmt = select(Program).where(
-            Program.name == name,
-            Program.slack_channel == slack_channel
+            Program.name == name, Program.slack_channel == slack_channel
         )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
@@ -46,10 +43,7 @@ class ProgramRepository(BaseRepository[Program]):
 
         stmt = select(Program).where(
             Program.start_date <= cycle_end,
-            or_(
-                Program.end_date.is_(None),
-                Program.end_date >= cycle_start
-            )
+            or_(Program.end_date.is_(None), Program.end_date >= cycle_start),
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())

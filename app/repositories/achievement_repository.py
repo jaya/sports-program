@@ -34,10 +34,7 @@ class AchievementRepository(BaseRepository[Achievement]):
     ) -> list[Achievement]:
         stmt = (
             select(Achievement)
-            .options(
-                joinedload(Achievement.user),
-                joinedload(Achievement.program)
-            )
+            .options(joinedload(Achievement.user), joinedload(Achievement.program))
             .where(
                 Achievement.program_id == program_id,
                 Achievement.cycle_reference == cycle_reference,
@@ -61,19 +58,14 @@ class AchievementRepository(BaseRepository[Achievement]):
         return result.rowcount
 
     async def user_has_achievement(
-        self,
-        user_id: int,
-        program_id: int,
-        cycle_reference: str
+        self, user_id: int, program_id: int, cycle_reference: str
     ) -> bool:
-
         stmt = select(
             sql_exists().where(
                 Achievement.user_id == user_id,
                 Achievement.program_id == program_id,
                 Achievement.cycle_reference == cycle_reference,
             )
-    )
+        )
         result = await self.session.execute(stmt)
         return result.scalar()
-

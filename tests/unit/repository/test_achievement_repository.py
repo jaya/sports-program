@@ -46,7 +46,8 @@ async def test_find_pending_notification_returns_achievements(repo, mock_session
 
     mock_result = MagicMock()
     mock_result.scalars.return_value.unique.return_value.all.return_value = [
-        achievement]
+        achievement
+    ]
     mock_session.execute.return_value = mock_result
 
     result = await repo.find_pending_notification(

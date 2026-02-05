@@ -43,6 +43,7 @@ class AchievementResponse(AchievementBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class AchievementCreateResponse(BaseModel):
     id: int
     user_id: int

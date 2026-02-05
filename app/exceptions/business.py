@@ -25,8 +25,8 @@ class BusinessRuleViolationError(BusinessException):
 
 class DatabaseError(Exception):
     def __init__(
-            self,
-            message: str = "An unexpected error occurred while processing your request."
+        self,
+        message: str = "An unexpected error occurred while processing your request.",
     ):
         self.message = message
         super().__init__(self.message)

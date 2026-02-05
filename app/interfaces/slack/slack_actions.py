@@ -1,9 +1,13 @@
 from datetime import datetime, timedelta
 
+import structlog
+
 from app.schemas.activity_schema import ActivityCreate
 from app.schemas.program_schema import ProgramCreate, ProgramResponse
 from app.services.activity_service import ActivityService
 from app.services.program_service import ProgramService
+
+logger = structlog.get_logger()
 
 
 async def create_program_action(
@@ -13,6 +17,11 @@ async def create_program_action(
     team_id: str | None = None,
     enterprise_id: str | None = None,
 ) -> ProgramResponse:
+    logger.info(
+        "Creating program from Slack interaction",
+        name=name,
+        slack_channel=slack_channel,
+    )
     start_date = datetime.now()
     end_date = start_date + timedelta(days=30)
 
@@ -29,6 +38,7 @@ async def create_program_action(
 
 
 async def list_programs_action(service: ProgramService) -> list[ProgramResponse]:
+    logger.info("Listing programs from Slack interaction")
     return await service.find_all()
 
 
@@ -38,6 +48,11 @@ async def list_activities_action(
     slack_user_id: str,
     reference_date: str | None = None,
 ):
+    logger.info(
+        "Listing activities from Slack interaction",
+        channel_id=channel_id,
+        reference_date=reference_date,
+    )
     if not reference_date:
         reference_date = datetime.now().strftime("%Y-%m")
     return await service.find_by_user_and_program(
@@ -53,6 +68,9 @@ async def register_activity_action(
     slack_user_id: str,
     activity_create: ActivityCreate,
 ):
+    logger.info(
+        "Registering activity from Slack interaction", slack_channel=slack_channel
+    )
     return await service.create(
         program_slack_channel=slack_channel,
         slack_id=slack_user_id,

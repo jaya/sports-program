@@ -10,8 +10,7 @@ class SlackInstallationRepository(BaseRepository[SlackInstallation]):
         super().__init__(session, SlackInstallation)
 
     async def find_by_team_id(self, team_id: str) -> SlackInstallation | None:
-        stmt = select(SlackInstallation).where(
-            SlackInstallation.team_id == team_id)
+        stmt = select(SlackInstallation).where(SlackInstallation.team_id == team_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 

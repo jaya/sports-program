@@ -70,8 +70,7 @@ async def test_find_by_name_and_slack_channel_not_found(program_repo, mock_sessi
     mock_session.execute.return_value = mock_result
 
     result = await program_repo.find_by_name_and_slack_channel(
-        "Test Name",
-        "Non-existent"
+        "Test Name", "Non-existent"
     )
 
     mock_session.execute.assert_called_once()
@@ -83,7 +82,7 @@ async def test_find_by_slack_channel_success(program_repo, mock_session):
     channel = "C123"
     programs = [
         Program(id=1, name="P1", slack_channel=channel),
-        Program(id=2, name="P2", slack_channel=channel)
+        Program(id=2, name="P2", slack_channel=channel),
     ]
 
     mock_result = MagicMock()

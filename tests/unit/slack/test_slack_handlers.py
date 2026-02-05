@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -247,7 +247,7 @@ async def test_handle_app_mention_success(mock_context):
         patch(ACTIVITY_REGISTERED_BLOCKS) as mock_blocks,
         patch(GET_ACTIVITY_SERVICE),
     ):
-        mock_parse_date.return_value = ("Ran 5km", date.today())
+        mock_parse_date.return_value = ("Ran 5km", datetime.now())
         # mock activity return object
         activity_mock = MagicMock()
         activity_mock.count_month = 5

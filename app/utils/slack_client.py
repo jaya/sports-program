@@ -1,14 +1,14 @@
-import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import structlog
 from slack_sdk.web.async_client import AsyncWebClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.program import Program
 from app.repositories.slack_installation_repository import SlackInstallationRepository
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 @asynccontextmanager
@@ -18,7 +18,9 @@ async def get_slack_client_for_program(
 ) -> AsyncGenerator[AsyncWebClient | None]:
     if not program.team_id and not program.enterprise_id:
         logger.warning(
-            f"Program {program.id} ({program.name}) has no team_id or enterprise_id"
+            "Program has no team_id or enterprise_id",
+            program_id=program.id,
+            program_name=program.name,
         )
         yield None
         return
@@ -30,8 +32,10 @@ async def get_slack_client_for_program(
 
     if not installation:
         logger.warning(
-            f"Installation not found for program {program.id} "
-            f"(team_id={program.team_id}, enterprise_id={program.enterprise_id})"
+            "Installation not found for program",
+            program_id=program.id,
+            team_id=program.team_id,
+            enterprise_id=program.enterprise_id,
         )
         yield None
         return
@@ -40,5 +44,5 @@ async def get_slack_client_for_program(
     try:
         yield client
     finally:
-        if hasattr(client, 'session') and client.session:
+        if hasattr(client, "session") and client.session:
             await client.session.close()
