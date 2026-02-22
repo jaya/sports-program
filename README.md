@@ -158,4 +158,4 @@ poetry run ruff format .
 
 MIT License.
 
-Made with ❤️ by Jaya Academy.
+Made with ❤️ by Jaya.
